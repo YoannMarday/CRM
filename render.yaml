@@ -2,7 +2,7 @@ services:
   - type: web
     name: party-crm
     runtime: node
-    plan: starter
+    plan: free
     buildCommand: npm install
     startCommand: npm start
     envVars:
@@ -10,11 +10,7 @@ services:
         sync: false
       - key: APP_PASS
         sync: false
+      - key: DATABASE_URL
+        sync: false
       - key: SESSION_SECRET
         generateValue: true
-      - key: DATA_DIR
-        value: /var/data
-    disk:
-      name: crm-data
-      mountPath: /var/data
-      sizeGB: 1
