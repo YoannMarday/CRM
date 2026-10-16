@@ -5,7 +5,7 @@ app.use(express.json({ limit: '10mb' }));
 const USER = process.env.APP_USER, PASS = process.env.APP_PASS;
 const SECRET = process.env.SESSION_SECRET || 'please-change-this-secret';
 const DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
-fs.mkdirSync(DIR, { recursive: true });
+try { fs.mkdirSync(DIR, { recursive: true }); } catch (e) {}
 const FILE = path.join(DIR, 'data.json');
 // Free hosting: if DATABASE_URL is set, data is kept in a free Postgres database (Neon) instead of a local file.
 let pool = null;
