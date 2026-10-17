@@ -69,16 +69,20 @@ const digitsOnly = v => String(v || '').replace(/\D/g, '');
 
 // Meta calls this once to check the webhook is yours
 app.get('/webhook', (req, res) => {
+  if (req.query['hub.mode']) console.log('WA webhook: Meta verification check ' + (WA_VERIFY && req.query['hub.verify_token'] === WA_VERIFY ? 'passed' : 'FAILED (verify word differs)'));
   if (WA_VERIFY && req.query['hub.mode'] === 'subscribe' && req.query['hub.verify_token'] === WA_VERIFY) return res.status(200).send(req.query['hub.challenge']);
   res.sendStatus(403);
 });
 // Meta sends every new client message here
 app.post('/webhook', async (req, res) => {
   try {
-    if (!WA_APP_SECRET || !req.rawBody) return res.sendStatus(403);
+    console.log('WA webhook: request received');
+    if (!WA_APP_SECRET || !req.rawBody) { console.log('WA webhook REFUSED: WHATSAPP_APP_SECRET is missing in Render'); return res.sendStatus(403); }
     const sig = String(req.headers['x-hub-signature-256'] || '');
     const exp = 'sha256=' + crypto.createHmac('sha256', WA_APP_SECRET).update(req.rawBody).digest('hex');
-    if (!sig || sig.length !== exp.length || !crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(exp))) return res.sendStatus(403);
+    if (!sig || sig.length !== exp.length || !crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(exp))) { console.log('WA webhook REFUSED: wrong signature - WHATSAPP_APP_SECRET in Render does not match the App secret in Meta'); return res.sendStatus(403); }
+    if (!pool) console.log('WA webhook: no DATABASE_URL, message not stored');
+    let stored = 0;
     if (pool) for (const en of (req.body.entry || [])) for (const ch of (en.changes || [])) {
       const v = ch.value || {}, names = {};
       (v.contacts || []).forEach(c => { names[c.wa_id] = c.profile && c.profile.name; });
@@ -86,10 +90,12 @@ app.post('/webhook', async (req, res) => {
         const body = (m.text && m.text.body) || (m[m.type] && m[m.type].caption) || ('📎 ' + m.type + ' (open WhatsApp to view)');
         await pool.query('insert into wa_messages(id,phone,name,dir,body,ts) values($1,$2,$3,$4,$5,$6) on conflict do nothing',
           [m.id, digitsOnly(m.from), names[m.from] || null, 'in', body, (+m.timestamp || Math.floor(Date.now() / 1000)) * 1000]);
+        stored++;
       }
     }
+    console.log('WA webhook OK: stored ' + stored + ' message(s)');
     res.sendStatus(200);
-  } catch (e) { console.error('webhook', e.message); res.sendStatus(200); }
+  } catch (e) { console.error('WA webhook ERROR:', e.message); res.sendStatus(200); }
 });
 app.get('/api/wa/chats', need, async (req, res) => {
   if (!pool) return res.status(503).json({ error: 'Database not connected' });
