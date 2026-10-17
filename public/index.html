@@ -69,6 +69,16 @@ aside{position:fixed;bottom:0;left:0;right:0;top:auto;height:auto;flex-direction
 main{padding:calc(14px + env(safe-area-inset-top)) 14px 100px}
 .g4{grid-template-columns:1fr 1fr}.g2{grid-template-columns:1fr}.f{grid-template-columns:1fr}
 }
+.wa-wrap{display:grid;grid-template-columns:320px 1fr;gap:16px;align-items:start}
+.wa-list{padding:6px;max-height:70vh;overflow:auto}
+.wa-thread{display:flex;flex-direction:column;gap:10px}
+.wa-msgs{display:flex;flex-direction:column;gap:8px;max-height:55vh;overflow:auto;padding:4px}
+.wa-b{max-width:80%;padding:9px 12px;border-radius:14px;background:var(--p2);white-space:pre-wrap;word-break:break-word}
+.wa-b.out{align-self:flex-end;background:var(--mint);color:#0f2421}
+.wa-b small{display:block;opacity:.65;font-size:11px;margin-top:3px}
+#war{display:flex;gap:8px}
+.wa-dot{color:var(--mint);font-size:18px;line-height:1}
+@media(max-width:860px){.wa-wrap{grid-template-columns:1fr}.wa-list{max-height:30vh}}
 </style></head><body>
 <div id="login" hidden><form onsubmit="return login(event)">
 <div class="big">🎈</div><h1 class="logo" style="padding:0">Party CRM</h1>
@@ -80,7 +90,8 @@ main{padding:calc(14px + env(safe-area-inset-top)) 14px 100px}
 <button class="nav" data-v="dash" onclick="go('dash')">🏠 Dashboard</button>
 <button class="nav" data-v="orders" onclick="go('orders')">📦 Orders</button>
 <button class="nav" data-v="clients" onclick="go('clients')">👥 Clients</button>
-<button class="nav" data-v="set" onclick="go('set')">⚙️ Settings</button></aside>
+<button class="nav" data-v="set" onclick="go('set')">⚙️ Settings</button>
+<button class="nav" data-v="msgs" id="navm" onclick="go('msgs')">💬 Messages</button></aside>
 <main><header><input class="search" id="q" placeholder="🔍 Search orders or clients…" oninput="q=this.value;if(view=='dash')view='orders';render()">
 <button class="btn" onclick="oForm()">+ New order</button></header><section id="v"></section></main></div>
 <div id="modal"></div><div id="toast"></div>
@@ -101,7 +112,7 @@ async function boot(){const r=await fetch('/api/data');if(r.status==401){$('#log
 async function login(e){e.preventDefault();const r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user:$('#lu').value,pass:$('#lp').value})});if(r.ok)boot();else $('#le').textContent=(await r.json()).error||'Wrong username or password';return false}
 async function logout(){await fetch('/api/logout',{method:'POST'});location.reload()}
 function go(v){view=v;q='';$('#q').value='';render()}
-function render(){document.querySelectorAll('.nav').forEach(n=>n.classList.toggle('on',n.dataset.v==view));$('#v').innerHTML=({dash,orders:ordersV,clients:clientsV,set:setV})[view]();scrollTo(0,0)}
+function render(){document.querySelectorAll('.nav').forEach(n=>n.classList.toggle('on',n.dataset.v==view));$('#v').innerHTML=({dash,orders:ordersV,clients:clientsV,set:setV,msgs:msgsV})[view]();scrollTo(0,0)}
 const pill=o=>`<span class="pill s-${o.status}">${o.status}</span>`;
 function dueTag(o){if(!o.deliveryDate||!open_(o))return'';const t=today();if(o.deliveryDate<t)return'<span class="pill late">Overdue</span>';if(o.deliveryDate==t)return'<span class="pill soon">Today</span>';if(o.deliveryDate<=iso(addD(new Date(),2)))return'<span class="pill soon">Soon</span>';return''}
 const orow=o=>`<div class="row" onclick="oForm('${o.id}')"><div class="m"><b>${esc(o.title)}</b><small>${esc(cli(o.clientId)?.name||'?')} · #${o.no} · ${fmt(o.deliveryDate)}</small></div>${dueTag(o)}${o.priority!='Normal'?`<span class="pill soon">${o.priority}</span>`:''}<div style="text-align:right"><div>${pill(o)}</div>${bal(o)>0?`<small>Due ${money(bal(o))}</small>`:'<small>Paid ✓</small>'}</div></div>`;
@@ -175,4 +186,39 @@ function delO(id){if(confirm('Delete this order permanently?')){S.orders=S.order
 function receipt(id,i){const o=ord(id),c=cli(o.clientId),p=o.payments[i],w=open('','_blank');if(!w)return alert('Please allow pop-ups to print receipts.');
 w.document.write(`<title>Receipt R-${o.no}-${i+1}</title><body style="font-family:sans-serif;max-width:420px;margin:30px auto;color:#222;padding:0 16px"><h2>🎈 ${esc(S.settings.biz)}</h2><p>Payment receipt R-${o.no}-${i+1}<br>${fmt(p.date)}</p><hr><p>Received from <b>${esc(c.name)}</b><br>For: ${esc(o.title)} (Order #${o.no})</p><h1>${money(p.amount)}</h1><p>Method: ${esc(p.method)}</p><hr><p>Order total: ${money(o.amount)}<br>Paid to date: ${money(paid(o))}<br><b>Balance: ${money(bal(o))}</b></p><p>Thank you! 🎉</p><script>setTimeout(print,300)<\/script>`);w.document.close()}
 boot();
+
+/* ---- WhatsApp messages ---- */
+let wa={chats:[],sel:null,timer:null};
+const dg=s=>String(s||'').replace(/\D/g,'');
+const waSeen=()=>{try{return JSON.parse(localStorage.getItem('waSeen')||'{}')}catch(e){return{}}};
+const waMark=(p,t)=>{try{const s=waSeen();s[p]=t;localStorage.setItem('waSeen',JSON.stringify(s))}catch(e){}};
+const waUnread=c=>c.last_dir=='in'&&c.last_ts>(waSeen()[c.phone]||0);
+const waName=c=>{const cl=S.clients.find(x=>dg(x.phone).length>=7&&dg(x.phone).slice(-8)==c.phone.slice(-8));return cl?cl.name:(c.name||'+'+c.phone)};
+const waTime=t=>new Date(t).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+function msgsV(){setTimeout(waInit,0);return'<h1 style="margin-bottom:14px">Messages</h1><div class="wa-wrap"><div class="card wa-list" id="wal"><div class="empty">Loading…</div></div><div class="card wa-thread"><div id="wah" class="mu">Select a conversation</div><div id="wam" class="wa-msgs"></div><form id="war" onsubmit="return waSend(event)" hidden><input id="wai" placeholder="Type a reply…" autocomplete="off"><button class="btn">Send</button></form></div></div>'}
+function waInit(){clearInterval(wa.timer);waTick();wa.timer=setInterval(()=>{if(view!='msgs')return clearInterval(wa.timer);waTick()},15000)}
+async function waChats(){const r=await fetch('/api/wa/chats');if(r.status==401)return location.reload();if(!r.ok)return null;wa.chats=await r.json();return wa.chats}
+async function waTick(){
+  if(!await waChats()){const l=$('#wal');if(l)l.innerHTML='<div class="empty">Messages are not available yet.</div>';return}
+  const l=$('#wal');if(!l)return;
+  l.innerHTML=wa.chats.length?wa.chats.map(c=>`<div class="row" onclick="waOpen('${c.phone}')" style="${wa.sel==c.phone?'background:var(--p2)':''}"><div class="m"><b>${esc(waName(c))}</b><small>${esc((c.last_dir=='out'?'You: ':'')+c.last_body)}</small></div>${waUnread(c)?'<span class="wa-dot">●</span>':''}</div>`).join(''):'<div class="empty">No messages yet. Once WhatsApp is connected, your client messages appear here.</div>';
+  if(wa.sel)waThread();
+  waBadge()}
+async function waOpen(p){wa.sel=p;const c=wa.chats.find(x=>x.phone==p);if(c)waMark(p,c.last_ts);await waThread(true);waTick()}
+async function waThread(scroll){
+  const c=wa.chats.find(x=>x.phone==wa.sel);if(!c)return;
+  const r=await fetch('/api/wa/messages?phone='+wa.sel);if(!r.ok)return;const ms=await r.json();
+  if(!$('#wam'))return;
+  $('#wah').innerHTML=`<b style="color:var(--tx)">${esc(waName(c))}</b> · +${esc(c.phone)}`;
+  const box=$('#wam'),atEnd=scroll||box.scrollHeight-box.scrollTop-box.clientHeight<60;
+  box.innerHTML=ms.map(m=>`<div class="wa-b ${m.dir}">${esc(m.body)}<small>${waTime(m.ts)}</small></div>`).join('');
+  if(atEnd)box.scrollTop=box.scrollHeight;
+  $('#war').hidden=false;
+  if(ms.length)waMark(wa.sel,ms[ms.length-1].ts)}
+async function waSend(e){e.preventDefault();const i=$('#wai'),t=i.value.trim();if(!t||!wa.sel)return false;
+  const r=await fetch('/api/wa/send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({to:wa.sel,text:t})});
+  const j=await r.json().catch(()=>({}));
+  if(!r.ok)alert(j.error||'Could not send');else{i.value='';await waChats();await waThread(true)}return false}
+async function waBadge(){try{if(!wa.chats.length&&!(await waChats()))return;const n=document.getElementById('navm');if(n)n.textContent='💬 Messages'+(wa.chats.some(waUnread)?' ●':'')}catch(e){}}
+setInterval(()=>{if(!$('#app').hidden&&view!='msgs')waChats().then(waBadge)},60000);
 </script></body></html>
