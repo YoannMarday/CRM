@@ -27,13 +27,20 @@ const sign = v => crypto.createHmac('sha256', SECRET).update(v).digest('hex');
 const hash = v => crypto.createHash('sha256').update(String(v)).digest();
 const same = (a, b) => crypto.timingSafeEqual(hash(a), hash(b));
 
+const IDLE = 5 * 60000; // auto log-off after 5 minutes without activity
 function authed(req) {
   const m = (req.headers.cookie || '').match(/crm=([^;]+)/);
   if (!m) return false;
   const [exp, sig] = m[1].split('.');
-  return +exp > Date.now() && !!sig && same(sig, sign(exp));
+  // must still be valid AND no more than 5 minutes ahead (this also retires old 30-day logins)
+  return +exp > Date.now() && +exp <= Date.now() + IDLE + 5000 && !!sig && same(sig, sign(exp));
 }
-const need = (req, res, next) => authed(req) ? next() : res.status(401).json({ error: 'login' });
+function issue(req, res) {
+  const exp = String(Date.now() + IDLE);
+  const secure = req.headers['x-forwarded-proto'] === 'https' ? '; Secure' : '';
+  res.setHeader('Set-Cookie', `crm=${exp}.${sign(exp)}; HttpOnly; Path=/; Max-Age=${IDLE / 1000}; SameSite=Lax${secure}`);
+}
+const need = (req, res, next) => { if (!authed(req)) return res.status(401).json({ error: 'login' }); issue(req, res); next(); };
 
 let fails = [];
 app.post('/api/login', (req, res) => {
@@ -42,14 +49,13 @@ app.post('/api/login', (req, res) => {
   if (!USER || !PASS) return res.status(500).json({ error: 'APP_USER and APP_PASS are not set on the server.' });
   const { user, pass } = req.body || {};
   if (same(user, USER) && same(pass, PASS)) {
-    const exp = String(Date.now() + 30 * 864e5);
-    const secure = req.headers['x-forwarded-proto'] === 'https' ? '; Secure' : '';
-    res.setHeader('Set-Cookie', `crm=${exp}.${sign(exp)}; HttpOnly; Path=/; Max-Age=${30 * 86400}; SameSite=Lax${secure}`);
+    issue(req, res);
     return res.json({ ok: true });
   }
   fails.push(Date.now());
   res.status(401).json({ error: 'Wrong username or password' });
 });
+app.post('/api/ping', need, (req, res) => res.json({ ok: true }));
 app.post('/api/logout', (req, res) => { res.setHeader('Set-Cookie', 'crm=; Path=/; Max-Age=0'); res.json({ ok: true }); });
 
 app.get('/api/data', need, async (req, res) => {
