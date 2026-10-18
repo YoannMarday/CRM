@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Party CRM</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎈</text></svg>">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#12151c;--p:#1a1f2a;--p2:#222938;--ln:#2b3345;--tx:#e9eef5;--mu:#8b96a8;--mint:#9fd6cc;--amb:#e8b04b;--blu:#58a6e0;--pnk:#d9a7cf;--red:#ef7d7d;--r:16px}
+*{box-sizing:border-box;margin:0}
+html,body{background:var(--bg);color:var(--tx);font:15px/1.45 'DM Sans',system-ui,sans-serif}
+h1,h2,h3,.logo{font-family:'Fredoka','DM Sans',sans-serif;font-weight:600}
+button,input,select,textarea{font:inherit;color:inherit}
+[hidden]{display:none!important}
+#app{display:grid;grid-template-columns:230px 1fr;min-height:100vh}
+aside{background:var(--p);border-right:1px solid var(--ln);padding:22px 14px;position:sticky;top:0;height:100vh;display:flex;flex-direction:column;gap:6px}
+.logo{font-size:22px;padding:0 10px 18px;color:var(--mint)}
+.nav{display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:12px;background:none;border:0;color:var(--mu);cursor:pointer;text-align:left;font-weight:500}
+.nav:hover{background:var(--p2);color:var(--tx)}
+.nav.on{background:var(--mint);color:#0f2421}
+main{padding:22px 26px 40px;min-width:0}
+header{display:flex;gap:12px;align-items:center;margin-bottom:22px}
+.search{flex:1;background:var(--p);border:1px solid var(--ln);border-radius:14px;padding:12px 16px;outline:0}
+.search:focus,input:focus,select:focus,textarea:focus{border-color:var(--mint)}
+.btn{background:var(--mint);color:#0f2421;border:0;border-radius:12px;padding:11px 18px;font-weight:700;cursor:pointer;white-space:nowrap}
+.btn.g{background:var(--p2);color:var(--tx);border:1px solid var(--ln)}
+.btn.d{background:none;color:var(--red);border:1px solid var(--red)}
+.btn.s{padding:6px 12px;font-size:13px}
+.grid{display:grid;gap:16px}
+.g4{grid-template-columns:repeat(4,1fr)}.g2{grid-template-columns:1.6fr 1fr}.gp{grid-template-columns:repeat(auto-fit,minmax(250px,1fr))}
+.card{background:var(--p);border:1px solid var(--ln);border-radius:var(--r);padding:18px;min-width:0}
+.card h3{font-size:17px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.stat{display:flex;gap:14px;align-items:center}
+.ic{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;font-size:22px;flex:none}
+.stat b{font-size:24px;font-family:Fredoka;display:block;line-height:1.1}
+.stat span{color:var(--mu);font-size:13px}
+.row{display:flex;align-items:center;gap:12px;padding:11px 8px;border-radius:12px;cursor:pointer;border-bottom:1px solid var(--ln)}
+.row:last-child{border:0}.row:hover{background:var(--p2)}
+.row .m{flex:1;min-width:0}.row .m b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row small,.mu{color:var(--mu);font-size:13px}
+.pill{font-size:12px;padding:3px 10px;border-radius:99px;font-weight:700;white-space:nowrap;background:var(--p2)}
+.s-Enquiry{color:var(--mu)}.s-Confirmed{color:var(--blu);background:#58a6e022}.s-In\ production{color:var(--amb);background:#e8b04b22}
+.s-Ready{color:var(--mint);background:#9fd6cc22}.s-Delivered{color:var(--pnk);background:#d9a7cf22}.s-Closed{color:var(--mu)}
+.late{color:var(--red);background:#ef7d7d22}.soon{color:var(--amb);background:#e8b04b22}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.tab{background:var(--p);border:1px solid var(--ln);border-radius:99px;padding:6px 14px;cursor:pointer;color:var(--mu)}
+.tab.on{background:var(--mint);color:#0f2421;border-color:var(--mint);font-weight:700}
+.rev{display:flex;gap:26px;margin-bottom:10px;flex-wrap:wrap}.rev b{font-size:22px;font-family:Fredoka;display:block}
+.empty{color:var(--mu);padding:14px 4px}
+.alert{background:#ef7d7d1f;border:1px solid #ef7d7d66;border-radius:14px;padding:12px 16px;margin-bottom:16px;color:var(--red)}
+.ov{position:fixed;inset:0;background:#000a;display:grid;place-items:center;padding:14px;z-index:20;overflow:auto}
+.box{background:var(--p);border:1px solid var(--ln);border-radius:20px;padding:22px;width:min(640px,100%);max-height:92vh;overflow:auto}
+.box h2{margin-bottom:14px}
+.f{display:grid;grid-template-columns:1fr 1fr;gap:12px}.f .w{grid-column:1/-1}
+label{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--mu)}
+input,select,textarea{background:var(--bg);border:1px solid var(--ln);border-radius:10px;padding:10px 12px;outline:0;width:100%;color:var(--tx)}
+textarea{min-height:80px;resize:vertical}
+.acts{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
+hr{border:0;border-top:1px solid var(--ln);margin:18px 0}
+#toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--mint);color:#0f2421;padding:8px 18px;border-radius:99px;font-weight:700;opacity:0;transition:.3s;pointer-events:none;z-index:30}
+#toast.on{opacity:1}
+#login{min-height:100vh;display:grid;place-items:center;padding:20px}
+#login form{background:var(--p);border:1px solid var(--ln);border-radius:22px;padding:34px;width:min(360px,100%);display:grid;gap:14px;text-align:center}
+#login .big{font-size:46px}
+svg text{fill:var(--mu);font-size:11px;font-family:'DM Sans'}
+@media(max-width:860px){
+#app{grid-template-columns:1fr}
+aside{position:fixed;bottom:0;left:0;right:0;top:auto;height:auto;flex-direction:row;justify-content:space-around;padding:6px 6px calc(6px + env(safe-area-inset-bottom));z-index:10;border-top:1px solid var(--ln);border-right:0}
+.logo{display:none}.nav{flex-direction:column;gap:2px;padding:7px 12px;font-size:12px}
+main{padding:calc(14px + env(safe-area-inset-top)) 14px 100px}
+.g4{grid-template-columns:1fr 1fr}.g2{grid-template-columns:1fr}.f{grid-template-columns:1fr}
+}
+</style></head><body>
+<div id="login" hidden><form onsubmit="return login(event)">
+<div class="big">🎈</div><h1 class="logo" style="padding:0">Party CRM</h1>
+<input id="lu" placeholder="Username" autocomplete="username" required>
+<input id="lp" type="password" placeholder="Password" autocomplete="current-password" required>
+<button class="btn">Sign in</button><div id="le" class="mu"></div></form></div>
+<div id="app" hidden>
+<aside><div class="logo">🎈 Party CRM</div>
+<button class="nav" data-v="dash" onclick="go('dash')">🏠 Dashboard</button>
+<button class="nav" data-v="orders" onclick="go('orders')">📦 Orders</button>
+<button class="nav" data-v="clients" onclick="go('clients')">👥 Clients</button>
+<button class="nav" data-v="set" onclick="go('set')">⚙️ Settings</button></aside>
+<main><header><input class="search" id="q" placeholder="🔍 Search orders or clients…" oninput="q=this.value;if(view=='dash')view='orders';render()">
+<button class="btn" onclick="oForm()">+ New order</button></header><section id="v"></section></main></div>
+<div id="modal"></div><div id="toast"></div>
+<script>
+const CUR='Rs ',STG=['Enquiry','Confirmed','In production','Ready','Delivered','Closed'],TYP=['Personalised item','3D cut-out','Birthday deco','Mixed order'],PAY=['Cash','Bank transfer','Juice','Card','Other'];
+let S={clients:[],orders:[],seq:1000,settings:{biz:'My Party Studio'}},view='dash',q='',fl='All',rm='month',tm;
+const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const iso=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'),today=()=>iso(new Date());
+const pd=s=>{const[y,m,d]=s.split('-');return new Date(y,m-1,d)},fmt=s=>s?pd(s).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'—';
+const money=n=>CUR+Number(n||0).toLocaleString('en',{maximumFractionDigits:0}),uid=()=>Math.random().toString(36).slice(2,9);
+const addD=(x,n)=>{const r=new Date(x);r.setDate(r.getDate()+n);return r},wk=d=>addD(new Date(d.getFullYear(),d.getMonth(),d.getDate()),-((d.getDay()+6)%7));
+const cli=id=>S.clients.find(c=>c.id==id),ord=id=>S.orders.find(o=>o.id==id);
+const waNum=p=>{let d=String(p||'').replace(/\D/g,'');return d.length==8?'230'+d:d};
+const paid=o=>o.payments.reduce((s,p)=>s+ +p.amount,0),bal=o=>(+o.amount||0)-paid(o);
+const open_=o=>!['Delivered','Closed'].includes(o.status);
+function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('on');clearTimeout(tm);tm=setTimeout(()=>e.classList.remove('on'),1400)}
+async function save(){try{const r=await fetch('/api/data',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(S)});if(r.status==401)return location.reload();toast('Saved ✓')}catch(e){toast('⚠️ Not saved – check connection')}}
+async function boot(){const r=await fetch('/api/data');if(r.status==401){$('#login').hidden=false;return}const d=await r.json();S=Object.assign(S,d);S.settings=Object.assign({biz:'My Party Studio'},S.settings);S.orders.forEach(o=>{o.payments=(o.payments||[]).filter(p=>+p.amount>0)});$('#login').hidden=true;$('#app').hidden=false;render()}
+async function login(e){e.preventDefault();const r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user:$('#lu').value,pass:$('#lp').value})});if(r.ok)boot();else $('#le').textContent=(await r.json()).error||'Wrong username or password';return false}
+async function logout(){await fetch('/api/logout',{method:'POST'});location.reload()}
+function go(v){view=v;q='';$('#q').value='';render()}
+function render(){document.querySelectorAll('.nav').forEach(n=>n.classList.toggle('on',n.dataset.v==view));$('#v').innerHTML=({dash,orders:ordersV,clients:clientsV,set:setV})[view]();scrollTo(0,0)}
+const pill=o=>`<span class="pill s-${o.status}">${o.status}</span>`;
+function dueTag(o){if(!o.deliveryDate||!open_(o))return'';const t=today();if(o.deliveryDate<t)return'<span class="pill late">Overdue</span>';if(o.deliveryDate==t)return'<span class="pill soon">Today</span>';if(o.deliveryDate<=iso(addD(new Date(),2)))return'<span class="pill soon">Soon</span>';return''}
+const orow=o=>`<div class="row" onclick="oForm('${o.id}')"><div class="m"><b>${esc(o.title)}</b><small>${esc(cli(o.clientId)?.name||'?')} · #${o.no} · ${fmt(o.deliveryDate)}</small></div>${dueTag(o)}${o.priority!='Normal'?`<span class="pill soon">${o.priority}</span>`:''}<div style="text-align:right"><div>${pill(o)}</div>${bal(o)>0?`<small>Due ${money(bal(o))}</small>`:'<small>Paid ✓</small>'}</div></div>`;
+function dash(){
+const now=new Date(),t=today(),ws=wk(now),we=iso(addD(ws,6)),nwe=iso(addD(ws,13)),me=iso(new Date(now.getFullYear(),now.getMonth()+1,0)),nme=iso(new Date(now.getFullYear(),now.getMonth()+2,0));
+const act=S.orders.filter(open_).sort((a,b)=>(a.deliveryDate||'9').localeCompare(b.deliveryDate||'9'));
+const grp=o=>!o.deliveryDate?'Later':o.deliveryDate<t?'Overdue':o.deliveryDate<=we?'This week':o.deliveryDate<=nwe?'Next week':o.deliveryDate<=me?'Later this month':o.deliveryDate<=nme?'Next month':'Later';
+const G=['Overdue','This week','Next week','Later this month','Next month'],pays=S.orders.flatMap(o=>o.payments);
+const sum=(a,b)=>pays.filter(p=>p.date>=iso(a)&&p.date<=iso(b)).reduce((s,p)=>s+ +p.amount,0);
+const y=now.getFullYear(),m=now.getMonth(),outst=S.orders.filter(o=>o.status!='Enquiry').reduce((s,o)=>s+Math.max(0,bal(o)),0);
+const od=act.filter(o=>grp(o)=='Overdue').length,wkN=act.filter(o=>grp(o)=='This week').length;
+let bars=[];
+if(rm=='week')for(let i=7;i>=0;i--){const s=addD(ws,-7*i);bars.push([s.toLocaleDateString('en-GB',{day:'numeric',month:'short'}),sum(s,addD(s,6))])}
+else if(rm=='month')for(let i=11;i>=0;i--){const s=new Date(y,m-i,1);bars.push([s.toLocaleDateString('en-GB',{month:'short'}),sum(s,new Date(y,m-i+1,0))])}
+else for(let i=4;i>=0;i--)bars.push([''+(y-i),sum(new Date(y-i,0,1),new Date(y-i,11,31))]);
+const mx=Math.max(1,...bars.map(b=>b[1])),bw=600/bars.length;
+const svg=`<svg viewBox="0 0 600 200" width="100%"><defs><linearGradient id="gr" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9fd6cc"/><stop offset="1" stop-color="#9fd6cc" stop-opacity=".25"/></linearGradient></defs>${bars.map((b,i)=>{const h=b[1]/mx*150;return`<rect x="${i*bw+bw*.2}" y="${170-h}" width="${bw*.6}" height="${Math.max(h,2)}" rx="6" fill="${i==bars.length-1?'#e8b04b':'url(#gr)'}"><title>${b[0]}: ${money(b[1])}</title></rect><text x="${i*bw+bw/2}" y="190" text-anchor="middle">${b[0]}</text>`}).join('')}</svg>`;
+const cs=S.clients.map(c=>({c,os:act.filter(o=>o.clientId==c.id)})).filter(x=>x.os.length).sort((a,b)=>(a.os[0].deliveryDate||'9').localeCompare(b.os[0].deliveryDate||'9'));
+const st=(ic,col,v,l)=>`<div class="card stat"><div class="ic" style="background:${col}22">${ic}</div><div><b>${v}</b><span>${l}</span></div></div>`;
+return`<h1 style="margin-bottom:4px">Hello! 👋</h1><p class="mu" style="margin-bottom:18px">${esc(S.settings.biz)} · ${now.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'})}</p>
+${od?`<div class="alert">⚠️ ${od} order${od>1?'s are':' is'} past the delivery date and not yet delivered.</div>`:''}
+<div class="grid g4" style="margin-bottom:16px">${st('📦','#e8b04b',act.length,'Active orders')}${st('🚚','#9fd6cc',wkN,'Due this week')}${st('💰','#d9a7cf',money(outst),'Still to collect')}${st('📈','#58a6e0',money(sum(new Date(y,m,1),new Date(y,m+1,0))),'Received this month')}</div>
+<div class="grid g2" style="margin-bottom:16px"><div class="card"><h3>Revenue received <span class="tabs" style="margin:0">${['week','month','year'].map(k=>`<span class="tab ${rm==k?'on':''}" onclick="rm='${k}';render()">${k[0].toUpperCase()+k.slice(1)}s</span>`).join('')}</span></h3>
+<div class="rev"><div><b>${money(sum(ws,addD(ws,6)))}</b><span class="mu">This week</span></div><div><b>${money(sum(new Date(y,m,1),new Date(y,m+1,0)))}</b><span class="mu">This month</span></div><div><b>${money(sum(new Date(y,0,1),new Date(y,11,31)))}</b><span class="mu">This year</span></div></div>${svg}</div>
+<div class="card"><h3>Clients by priority</h3>${cs.length?cs.slice(0,6).map(x=>`<div class="row" onclick="cForm('${x.c.id}')"><div class="m"><b>${esc(x.c.name)}</b><small>Next: ${fmt(x.os[0].deliveryDate)} · ${x.os.length} order${x.os.length>1?'s':''}</small></div>${dueTag(x.os[0])}<small>${money(x.os.reduce((s,o)=>s+Math.max(0,bal(o)),0))}</small></div>`).join(''):'<div class="empty">No active clients yet. Add your first order!</div>'}</div></div>
+<h2 style="margin:6px 0 12px">Coming up</h2><div class="grid gp">${G.map(g=>{const l=act.filter(o=>grp(o)==g);return l.length||g!='Overdue'?`<div class="card"><h3>${g}<span class="pill">${l.length}</span></h3>${l.length?l.map(orow).join(''):'<div class="empty">Nothing due 🎉</div>'}</div>`:''}).join('')}</div>`}
+function ordersV(){
+const k=q.toLowerCase(),l=S.orders.filter(o=>(fl=='All'||o.status==fl)&&(!k||(o.title+(cli(o.clientId)?.name||'')+o.details+'#'+o.no).toLowerCase().includes(k))).sort((a,b)=>(a.deliveryDate||'9').localeCompare(b.deliveryDate||'9'));
+return`<h1 style="margin-bottom:14px">Orders</h1><div class="tabs">${['All',...STG].map(s=>`<span class="tab ${fl==s?'on':''}" onclick="fl='${s}';render()">${s}</span>`).join('')}</div><div class="card">${l.length?l.map(orow).join(''):'<div class="empty">No orders found.</div>'}</div>`}
+function clientsV(){
+const k=q.toLowerCase(),l=S.clients.filter(c=>!k||(c.name+c.phone+(c.child||'')).toLowerCase().includes(k)).sort((a,b)=>a.name.localeCompare(b.name));
+return`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px"><h1>Clients</h1><button class="btn" onclick="cForm()">+ New client</button></div><div class="card">${l.length?l.map(c=>{const os=S.orders.filter(o=>o.clientId==c.id);return`<div class="row" onclick="cForm('${c.id}')"><div class="ic" style="background:#9fd6cc22;width:40px;height:40px">🎂</div><div class="m"><b>${esc(c.name)}</b><small>${esc(c.phone)}${c.child?' · '+esc(c.child):''}</small></div><small>${os.length} order${os.length!=1?'s':''}<br>${money(os.reduce((s,o)=>s+paid(o),0))} paid</small></div>`}).join(''):'<div class="empty">No clients yet.</div>'}</div>`}
+function setV(){return`<h1 style="margin-bottom:14px">Settings</h1><div class="card" style="max-width:520px"><form id="f" onsubmit="return saveSet(event)" class="f"><div class="w">${fld('Business name (shown on receipts)','biz',S.settings.biz)}</div></form><div class="acts"><button class="btn" onclick="saveSet()">Save</button></div><hr><h3>Backup</h3><p class="mu">Download a copy of all your data now and then, and keep it safe.</p><div class="acts"><button class="btn g" onclick="backup()">⬇️ Download backup</button><label class="btn g" style="cursor:pointer;color:var(--tx)">⬆️ Restore backup<input type="file" accept=".json" hidden onchange="restore(this)"></label></div><hr><button class="btn d" onclick="logout()">Sign out</button></div>`}
+function saveSet(e){e&&e.preventDefault();S.settings.biz=$('#f [name=biz]').value||'My Party Studio';save();render();return false}
+function backup(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(S,null,1)],{type:'application/json'}));a.download='party-crm-backup-'+today()+'.json';a.click()}
+function restore(i){const f=i.files[0];if(!f||!confirm('This replaces ALL current data. Continue?'))return;f.text().then(t=>{try{const d=JSON.parse(t);if(!d.clients||!d.orders)throw 0;S=d;save();render()}catch(e){alert('That file is not a valid backup.')}})}
+const fld=(l,n,v='',t='text',x='')=>`<label>${l}<input name="${n}" type="${t}" value="${esc(v)}" ${x}></label>`;
+const sel=(l,n,o,v,x='')=>`<label>${l}<select name="${n}" ${x}>${o.map(a=>{const[k,t]=Array.isArray(a)?a:[a,a];return`<option value="${esc(k)}"${k==v?' selected':''}>${esc(t)}</option>`}).join('')}</select></label>`;
+const fd=()=>Object.fromEntries(new FormData($('#f'))),mdl=h=>$('#modal').innerHTML=`<div class="ov" onclick="if(event.target===this)cm()"><div class="box">${h}</div></div>`,cm=()=>$('#modal').innerHTML='';
+function cForm(id){const c=cli(id)||{},os=id?S.orders.filter(o=>o.clientId==id):[];
+mdl(`<h2>${id?esc(c.name):'New client'}</h2><form id="f" onsubmit="return saveC(event,'${id||''}')" class="f">${fld('Name *','name',c.name,'text','required')}${fld('Phone / WhatsApp','phone',c.phone)}${fld('Email','email',c.email)}${sel('Found us via','source',['WhatsApp','Facebook','Instagram','Referral','Other'],c.source)}${fld("Child's name & age",'child',c.child)}${fld("Child's birthday",'bday',c.bday,'date')}<div class="w">${fld('Address','addr',c.addr)}</div><label class="w">Onboarding notes (themes, likes, allergies, preferences)<textarea name="notes">${esc(c.notes)}</textarea></label></form>
+<div class="acts"><button class="btn" onclick="$('#f').requestSubmit()">Save client</button>${id&&c.phone?`<a class="btn g" target="_blank" href="https://wa.me/${waNum(c.phone)}">💬 WhatsApp</a>`:''}${id?`<button class="btn g" onclick="oForm('',${JSON.stringify(id).replace(/"/g,"'")})">+ Order</button><button class="btn d" onclick="delC('${id}')">Delete</button>`:''}<button class="btn g" onclick="cm()">Close</button></div>
+${os.length?`<hr><h3 style="margin-bottom:8px">Orders</h3>${os.map(orow).join('')}`:''}`)}
+function saveC(e,id){e.preventDefault();const d=fd();if(id)Object.assign(cli(id),d);else S.clients.push({id:uid(),...d});save();cm();render();return false}
+function delC(id){if(S.orders.some(o=>o.clientId==id))return alert('Delete or reassign this client\'s orders first.');if(confirm('Delete this client?')){S.clients=S.clients.filter(c=>c.id!=id);save();cm();render()}}
+function oForm(id,cid){const o=ord(id)||{clientId:cid,type:TYP[0],status:'Enquiry',priority:'Normal',orderDate:today(),payments:[]};
+mdl(`<h2>${id?`Order #${o.no}`:'New order'}</h2><form id="f" onsubmit="return saveO(event,'${id||''}')" class="f">
+${sel('Client','clientId',[...S.clients.map(c=>[c.id,c.name]),['__new','➕ New client…']],o.clientId,'onchange="$(\'#nc\').hidden=this.value!=\'__new\'"')}
+<div id="nc" class="f w" ${S.clients.length&&o.clientId?'hidden':''}>${fld('New client name','nname')}${fld('Phone / WhatsApp','nphone')}</div>
+<div class="w">${fld('Order title *','title',o.title,'text','required placeholder="e.g. Unicorn party pack for Mia"')}</div>
+${sel('Type','type',TYP,o.type)}${sel('Status','status',STG,o.status)}
+<label class="w">Details (theme, name, age, colours, sizes, quantity)<textarea name="details">${esc(o.details)}</textarea></label>
+${fld('Total price ('+CUR.trim()+')','amount',o.amount,'number','min="0" step="any" required')}${sel('Priority','priority',['Normal','High','Urgent'],o.priority)}
+${fld('Order date','orderDate',o.orderDate,'date')}${fld('Delivery date','deliveryDate',o.deliveryDate,'date')}
+<div class="w">${fld('Delivery address / pickup','addr',o.addr)}</div>
+${id?'':fld('Deposit received now','deposit','','number','min="0" step="any"')+sel('Deposit method','method',PAY)}</form>
+<div class="acts"><button class="btn" onclick="$('#f').requestSubmit()">Save order</button>${id&&o.status!='Closed'?`<button class="btn g" onclick="closeO('${id}')">✅ Close order</button>`:''}${id?`<button class="btn d" onclick="delO('${id}')">Delete</button>`:''}<button class="btn g" onclick="cm()">Close</button></div>
+${id?payBlock(o):''}`)}
+function payBlock(o){return`<hr><h3 style="margin-bottom:6px">Payments <span class="mu">${money(paid(o))} of ${money(o.amount)} · <b style="color:${bal(o)>0?'var(--amb)':'var(--mint)'}">${bal(o)>0?'Balance '+money(bal(o)):'Fully paid'}</b></span></h3>
+${o.payments.map((p,i)=>`<div class="row" style="cursor:default"><div class="m"><b>${money(p.amount)}</b><small>${fmt(p.date)} · ${esc(p.method)}</small></div><button class="btn g s" onclick="receipt('${o.id}',${i})">🧾 Receipt</button><button class="btn d s" onclick="delP('${o.id}',${i})">✕</button></div>`).join('')||'<div class="empty">No payments yet.</div>'}
+<form id="pf" class="f" style="margin-top:10px" onsubmit="return addP(event,'${o.id}')">${fld('Amount','amt',Math.max(0,bal(o)),'number','required min="0.01" step="any"')}${sel('Method','method',PAY)}${fld('Date','date',today(),'date')}<div style="display:flex;align-items:end"><button class="btn">+ Add payment</button></div></form>`}
+function saveO(e,id){e.preventDefault();const d=fd();let cid=d.clientId;
+if(cid=='__new'||!cid){if(!d.nname)return alert('Please choose or add a client.');cid=uid();S.clients.push({id:cid,name:d.nname,phone:d.nphone||''})}
+const f={clientId:cid,title:d.title,type:d.type,status:d.status,details:d.details,amount:+d.amount,priority:d.priority,orderDate:d.orderDate,deliveryDate:d.deliveryDate,addr:d.addr};
+if(id)Object.assign(ord(id),f);else{S.seq=(S.seq||1000)+1;S.orders.push({id:uid(),no:S.seq,payments:+d.deposit>0?[{amount:+d.deposit,method:d.method,date:today()}]:[],...f})}
+save();cm();render();return false}
+function addP(e,id){e.preventDefault();const d=Object.fromEntries(new FormData(e.target)),o=ord(id);if(!(+d.amt>0))return alert('Please enter the amount paid.');o.payments.push({amount:+d.amt,method:d.method,date:d.date});save();render();oForm(id);return false}
+function delP(id,i){if(confirm('Remove this payment?')){ord(id).payments.splice(i,1);save();render();oForm(id)}}
+function closeO(id){const o=ord(id);if(bal(o)>0&&!confirm('There is still '+money(bal(o))+' unpaid. Close anyway?'))return;o.status='Closed';save();cm();render()}
+function delO(id){if(confirm('Delete this order permanently?')){S.orders=S.orders.filter(o=>o.id!=id);save();cm();render()}}
+function receipt(id,i){const o=ord(id),c=cli(o.clientId)||{name:'',phone:''},p=o.payments[i],w=open('','_blank');if(!w)return alert('Please allow pop-ups to print receipts.');
+const ph=waNum(c.phone),msg=`Hello ${c.name}, thank you! 🎉 We received your payment of ${money(p.amount)} on ${fmt(p.date)} for "${o.title}" (Order #${o.no}). Receipt R-${o.no}-${i+1}. Order total: ${money(o.amount)} · Paid to date: ${money(paid(o))} · Balance: ${money(bal(o))}. ${S.settings.biz}`;
+const btns=`<style>.b{display:inline-block;background:#9fd6cc;color:#10231f;padding:10px 14px;border-radius:10px;text-decoration:none;font-weight:bold;font-size:14px}@media print{.np{display:none!important}}</style><div class="np" style="margin-top:18px;display:flex;gap:10px;flex-wrap:wrap;align-items:center"><a class="b" href="#" onclick="print();return false">🖨️ Print / Save PDF</a>${ph?`<a class="b" target="_blank" href="https://wa.me/${ph}?text=${encodeURIComponent(msg)}">💬 WhatsApp client</a>`:'<span style="color:#888">No phone number saved for this client</span>'}</div>`;
+w.document.write(`<title>Receipt R-${o.no}-${i+1}</title><body style="font-family:sans-serif;max-width:420px;margin:30px auto;color:#222;padding:0 16px"><h2>🎈 ${esc(S.settings.biz)}</h2><p>Payment receipt R-${o.no}-${i+1}<br>${fmt(p.date)}</p><hr><p>Received from <b>${esc(c.name)}</b><br>For: ${esc(o.title)} (Order #${o.no})</p><h1>${money(p.amount)}</h1><p>Method: ${esc(p.method)}</p><hr><p>Order total: ${money(o.amount)}<br>Paid to date: ${money(paid(o))}<br><b>Balance: ${money(bal(o))}</b></p><p>Thank you! 🎉</p>${btns}`);w.document.close()}
+boot();
+</script></body></html>
