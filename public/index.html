@@ -74,6 +74,12 @@ main{padding:calc(14px + env(safe-area-inset-top)) 14px 100px}
 aside .logo{text-align:center;padding-bottom:14px}aside .logo img{display:block;width:120px;height:120px;border-radius:24px;margin:0 auto 6px}
 .mbrand{display:none}
 @media(max-width:860px){.mbrand{display:flex;align-items:center;gap:10px;margin-bottom:12px}.mbrand img{width:40px;height:40px;border-radius:10px}.mbrand b{font:600 22px 'Fredoka','DM Sans',sans-serif;color:var(--mint)}}
+.rbar{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end}.rbar label{min-width:150px;flex:1 1 150px}.rbar .btn{flex:0 0 auto}
+.rsum{display:flex;gap:12px;flex-wrap:wrap;margin:14px 0}.rsum div{background:var(--p);border:1px solid var(--ln);border-radius:14px;padding:12px 16px;flex:1 1 120px}
+.rsum b{display:block;font:600 19px 'Fredoka','DM Sans',sans-serif}.rsum small{color:var(--mu);font-size:12px}
+.rt{border-collapse:collapse;width:100%;font-size:13px}.rt th,.rt td{padding:10px 12px;text-align:left;white-space:nowrap;border-bottom:1px solid var(--ln)}
+.rt th{color:var(--mu);font-weight:600;background:var(--p2)}.rt .r{text-align:right}.rt tr:last-child td{border-bottom:0}
+@media(max-width:860px){.nav{padding:7px 6px;font-size:11.5px}}
 </style></head><body>
 <div id="login" hidden><form onsubmit="return login(event)">
 <img src="/logo.jpg" alt="Kikoo" class="lg"><h1 class="logo" style="padding:0">Kikoo</h1>
@@ -85,6 +91,7 @@ aside .logo{text-align:center;padding-bottom:14px}aside .logo img{display:block;
 <button class="nav" data-v="dash" onclick="go('dash')">🏠 Dashboard</button>
 <button class="nav" data-v="orders" onclick="go('orders')">📦 Orders</button>
 <button class="nav" data-v="clients" onclick="go('clients')">👥 Clients</button>
+<button class="nav" data-v="rep" onclick="go('rep')">📊 Report</button>
 <button class="nav" data-v="set" onclick="go('set')">⚙️ Settings</button></aside>
 <main><div class="mbrand"><img src="/logo.jpg" alt="Kikoo"><b>Kikoo</b></div><header><input class="search" id="q" placeholder="🔍 Search orders or clients…" oninput="q=this.value;if(view=='dash')view='orders';render()">
 <button class="btn" onclick="oForm()">+ New order</button></header><section id="v"></section></main></div>
@@ -107,7 +114,7 @@ async function boot(){const r=await fetch('/api/data');if(r.status==401){$('#log
 async function login(e){e.preventDefault();const r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user:$('#lu').value,pass:$('#lp').value})});if(r.ok)boot();else $('#le').textContent=(await r.json()).error||'Wrong username or password';return false}
 async function logout(){await fetch('/api/logout',{method:'POST'});location.reload()}
 function go(v){view=v;q='';$('#q').value='';render();if(v=='dash')popNd();else pushNd()}
-function render(){document.querySelectorAll('.nav').forEach(n=>n.classList.toggle('on',n.dataset.v==view));$('#v').innerHTML=({dash,orders:ordersV,clients:clientsV,set:setV})[view]();scrollTo(0,0)}
+function render(){document.querySelectorAll('.nav').forEach(n=>n.classList.toggle('on',n.dataset.v==view));$('#v').innerHTML=({dash,orders:ordersV,clients:clientsV,rep:repV,set:setV})[view]();scrollTo(0,0)}
 const pill=o=>`<span class="pill s-${o.status}">${o.status}</span>`;
 function dueTag(o){if(!o.deliveryDate||!open_(o))return'';const t=today();if(o.deliveryDate<t)return'<span class="pill late">Overdue</span>';if(o.deliveryDate==t)return'<span class="pill soon">Today</span>';if(o.deliveryDate<=iso(addD(new Date(),2)))return'<span class="pill soon">Soon</span>';return''}
 const orow=o=>`<div class="row" onclick="oForm('${o.id}')"><div class="m"><b>${esc(o.title)}</b><small>${esc(cli(o.clientId)?.name||'?')} · #${o.no} · ${fmt(o.deliveryDate)}</small></div>${dueTag(o)}${o.priority!='Normal'?`<span class="pill soon">${o.priority}</span>`:''}<div style="text-align:right"><div>${pill(o)}</div>${bal(o)>0?`<small>Due ${money(bal(o))}</small>`:'<small>Paid ✓</small>'}</div></div>`;
@@ -233,6 +240,76 @@ function buildPdf(content,W,H){
 function receiptFile(id,i){const o=ord(id),c=cli(o.clientId)||{name:'',phone:''},p=o.payments[i];
   const nm=(c.name||'client').replace(/[^\w\-]+/g,'_');
   return new File([receiptPdf(o,c,p,i)],`Kikoo-Receipt-R-${o.no}-${i+1}-${nm}.pdf`,{type:'application/pdf'})}
+/* ---- Report + Excel export ---- */
+const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
+let rp={mode:'all',y:new Date().getFullYear(),m:new Date().getMonth()+1};
+const delivered=o=>['Delivered','Closed'].includes(o.status);
+function repRows(){
+  let os=S.orders.filter(o=>{if(rp.mode=='all')return true;const d=o.orderDate||'';if(d.slice(0,4)!=String(rp.y))return false;return rp.mode=='year'||+d.slice(5,7)==rp.m});
+  os.sort((a,b)=>(a.orderDate||'9999').localeCompare(b.orderDate||'9999')||(a.no-b.no));
+  return os.map(o=>{const c=cli(o.clientId)||{},tot=+o.amount||0,pd_=paid(o);
+    return{date:o.orderDate||'',no:o.no,name:c.name||'',phone:c.phone||'',addr:o.addr||c.addr||'',title:o.title||'',total:tot,paid:pd_,due:tot-pd_,del:delivered(o)}});
+}
+function repLabel(){return rp.mode=='all'?'Full report':rp.mode=='year'?String(rp.y):MONTHS[rp.m-1]+' '+rp.y}
+function repV(){
+  const yrs=[...new Set([new Date().getFullYear(),...S.orders.map(o=>+(o.orderDate||'').slice(0,4)).filter(Boolean)])].sort((a,b)=>b-a);
+  const rows=repRows(),T=rows.reduce((a,r)=>({total:a.total+r.total,paid:a.paid+r.paid,due:a.due+r.due}),{total:0,paid:0,due:0});
+  const opt=(v,t,on)=>`<option value="${v}"${on?' selected':''}>${t}</option>`;
+  return`<h1 style="margin-bottom:14px">Report</h1><div class="card"><div class="rbar">
+<label>Period<select onchange="rp.mode=this.value;render()">${opt('all','Full report (all orders)',rp.mode=='all')}${opt('year','By year',rp.mode=='year')}${opt('month','By month',rp.mode=='month')}</select></label>
+${rp.mode!='all'?`<label>Year<select onchange="rp.y=+this.value;render()">${yrs.map(y=>opt(y,y,y==rp.y)).join('')}</select></label>`:''}
+${rp.mode=='month'?`<label>Month<select onchange="rp.m=+this.value;render()">${MONTHS.map((m,i)=>opt(i+1,m,i+1==rp.m)).join('')}</select></label>`:''}
+<button class="btn" onclick="exportReport()">⬇️ Export to Excel</button></div></div>
+<div class="rsum"><div><b>${rows.length}</b><small>Orders · ${esc(repLabel())}</small></div><div><b>${money(T.total)}</b><small>Total amount</small></div><div><b>${money(T.paid)}</b><small>Paid</small></div><div><b>${money(T.due)}</b><small>Amount due</small></div></div>
+<div class="card" style="padding:0;overflow:auto"><table class="rt"><thead><tr><th>Order date</th><th>Order #</th><th>Client</th><th>Mobile</th><th>Address</th><th>Description</th><th class="r">Total</th><th class="r">Paid</th><th class="r">Due</th><th>Delivered</th></tr></thead><tbody>${rows.length?rows.map(r=>`<tr><td>${fmt(r.date)}</td><td>${r.no}</td><td>${esc(r.name)}</td><td>${esc(r.phone)}</td><td>${esc(r.addr)}</td><td>${esc(r.title)}</td><td class="r">${money(r.total)}</td><td class="r">${money(r.paid)}</td><td class="r" style="${r.due>0?'color:var(--amb)':''}">${money(r.due)}</td><td style="color:var(${r.del?'--mint':'--pnk'})">${r.del?'Yes':'No'}</td></tr>`).join(''):'<tr><td colspan="10" class="empty">No orders for this period.</td></tr>'}</tbody></table></div>`}
+function exportReport(){
+  const rows=repRows();if(!rows.length)return alert('There are no orders for this period.');
+  const tag=rp.mode=='all'?'Full-Report':rp.mode=='year'?String(rp.y):`${rp.y}-${String(rp.m).padStart(2,'0')}-${MONTHS[rp.m-1]}`;
+  const blob=xlsxBook(rows,repLabel()),u=URL.createObjectURL(blob),a=document.createElement('a');
+  a.href=u;a.download=`Kikoo-Orders-${tag}.xlsx`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(u);a.remove()},4000);
+  toast('Excel file ready ✓');
+}
+/* minimal .xlsx writer (no external library) */
+const xe=s=>String(s==null?'':s).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g,'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const xdate=s=>{const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(s||'');return m?Math.round(Date.UTC(+m[1],+m[2]-1,+m[3])/864e5)+25569:null};
+function xlsxBook(rows,label){
+  const n=rows.length,last=n+1,tr=n+3,cl=i=>String.fromCharCode(65+i);
+  const S_=(r,c,v,s)=>`<c r="${cl(c)}${r}" t="inlineStr" s="${s}"><is><t xml:space="preserve">${xe(v)}</t></is></c>`,
+        N_=(r,c,v,s)=>`<c r="${cl(c)}${r}" s="${s}"><v>${v}</v></c>`,
+        F_=(r,c,f,v,s)=>`<c r="${cl(c)}${r}" s="${s}"><f>${f}</f><v>${v}</v></c>`,
+        E_=(r,c,s)=>`<c r="${cl(c)}${r}" s="${s}"/>`;
+  const heads=['Order date','Order #','Client name','Mobile number','Address','Description','Total amount','Payment received','Amount due','Delivered'];
+  let sd=`<row r="1" ht="26" customHeight="1">${heads.map((t,i)=>S_(1,i,t,1)).join('')}</row>`;
+  rows.forEach((r,k)=>{const x=k+2,d=xdate(r.date);
+    sd+=`<row r="${x}">${d==null?E_(x,0,2):N_(x,0,d,2)}${N_(x,1,r.no,7)}${S_(x,2,r.name,0)}${S_(x,3,r.phone,0)}${S_(x,4,r.addr,0)}${S_(x,5,r.title,0)}${N_(x,6,r.total,3)}${N_(x,7,r.paid,3)}${F_(x,8,`G${x}-H${x}`,r.total-r.paid,3)}${S_(x,9,r.del?'Yes':'No',7)}</row>`});
+  const T=rows.reduce((a,r)=>({t:a.t+r.total,p:a.p+r.paid}),{t:0,p:0});
+  sd+=`<row r="${tr}">${S_(tr,0,`TOTAL · ${n} order${n>1?'s':''} · ${label}`,5)}${[1,2,3,4,5].map(c=>E_(tr,c,8)).join('')}${F_(tr,6,`SUM(G2:G${last})`,T.t,6)}${F_(tr,7,`SUM(H2:H${last})`,T.p,6)}${F_(tr,8,`SUM(I2:I${last})`,T.t-T.p,6)}${E_(tr,9,8)}</row>`;
+  const widths=[14,9,24,17,36,30,16,18,16,12];
+  const sheet=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetPr><pageSetUpPr fitToPage="1"/></sheetPr><dimension ref="A1:J${tr}"/><sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews><sheetFormatPr defaultRowHeight="15"/><cols>${widths.map((w,i)=>`<col min="${i+1}" max="${i+1}" width="${w}" customWidth="1"/>`).join('')}</cols><sheetData>${sd}</sheetData><autoFilter ref="A1:J${last}"/><pageMargins left="0.5" right="0.5" top="0.6" bottom="0.6" header="0.3" footer="0.3"/><pageSetup orientation="landscape" fitToWidth="1" fitToHeight="0"/><ignoredErrors><ignoredError sqref="D2:D${last}" numberStoredAsText="1"/></ignoredErrors></worksheet>`;
+  const money_=`&quot;${xe(CUR)}&quot;#,##0;[Red]-&quot;${xe(CUR)}&quot;#,##0`;
+  const styles=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><numFmts count="2"><numFmt numFmtId="164" formatCode="dd\\ mmm\\ yyyy"/><numFmt numFmtId="165" formatCode="${money_}"/></numFmts><fonts count="3"><font><sz val="10"/><name val="Arial"/></font><font><b/><sz val="10"/><color rgb="FFFFFFFF"/><name val="Arial"/></font><font><b/><sz val="10"/><name val="Arial"/></font></fonts><fills count="4"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF1F8A7D"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFE6F4F1"/><bgColor indexed="64"/></patternFill></fill></fills><borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border><border><left/><right/><top style="thin"><color rgb="FF1F8A7D"/></top><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="9"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf><xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1" applyAlignment="1"><alignment horizontal="left"/></xf><xf numFmtId="165" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="2" fillId="3" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="165" fontId="2" fillId="3" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment horizontal="center"/></xf><xf numFmtId="0" fontId="2" fillId="3" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1"/></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`;
+  const ct=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>`;
+  const rels=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`;
+  const wb=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Orders" sheetId="1" r:id="rId1"/></sheets></workbook>`;
+  const wbrels=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`;
+  const te=new TextEncoder();
+  return zipStore([['[Content_Types].xml',ct],['_rels/.rels',rels],['xl/workbook.xml',wb],['xl/_rels/workbook.xml.rels',wbrels],['xl/styles.xml',styles],['xl/worksheets/sheet1.xml',sheet]].map(([name,t])=>({name,data:te.encode(t)})));
+}
+function zipStore(files){
+  const te=new TextEncoder(),T=[];for(let k=0;k<256;k++){let c=k;for(let j=0;j<8;j++)c=c&1?0xEDB88320^(c>>>1):c>>>1;T[k]=c>>>0}
+  const crc=b=>{let c=0xFFFFFFFF;for(let i=0;i<b.length;i++)c=T[(c^b[i])&255]^(c>>>8);return(c^0xFFFFFFFF)>>>0};
+  const d=new Date(),dt=((d.getHours()<<11)|(d.getMinutes()<<5)|(d.getSeconds()>>1))&0xFFFF,dd=(((d.getFullYear()-1980)<<9)|((d.getMonth()+1)<<5)|d.getDate())&0xFFFF;
+  const parts=[],cd=[];let off=0;
+  files.forEach(f=>{const nm=te.encode(f.name),c=crc(f.data),L=new DataView(new ArrayBuffer(30));
+    L.setUint32(0,0x04034b50,true);L.setUint16(4,20,true);L.setUint16(6,0x0800,true);L.setUint16(8,0,true);L.setUint16(10,dt,true);L.setUint16(12,dd,true);L.setUint32(14,c,true);L.setUint32(18,f.data.length,true);L.setUint32(22,f.data.length,true);L.setUint16(26,nm.length,true);L.setUint16(28,0,true);
+    parts.push(new Uint8Array(L.buffer),nm,f.data);
+    const C=new DataView(new ArrayBuffer(46));C.setUint32(0,0x02014b50,true);C.setUint16(4,20,true);C.setUint16(6,20,true);C.setUint16(8,0x0800,true);C.setUint16(10,0,true);C.setUint16(12,dt,true);C.setUint16(14,dd,true);C.setUint32(16,c,true);C.setUint32(20,f.data.length,true);C.setUint32(24,f.data.length,true);C.setUint16(28,nm.length,true);C.setUint32(42,off,true);
+    cd.push(new Uint8Array(C.buffer),nm);off+=30+nm.length+f.data.length});
+  const size=cd.reduce((s,a)=>s+a.length,0),E=new DataView(new ArrayBuffer(22));
+  E.setUint32(0,0x06054b50,true);E.setUint16(8,files.length,true);E.setUint16(10,files.length,true);E.setUint32(12,size,true);E.setUint32(16,off,true);
+  return new Blob([...parts,...cd,new Uint8Array(E.buffer)],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+}
+
 /* ---- phone back button: first press returns to the dashboard ---- */
 const nd=()=>history.state&&history.state.nd;
 function pushNd(){if(!nd())history.pushState({nd:1},'')}
