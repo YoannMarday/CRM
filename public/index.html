@@ -93,7 +93,7 @@ aside .logo{text-align:center;padding-bottom:14px}aside .logo img{display:block;
 <button class="nav" data-v="clients" onclick="go('clients')">👥 Clients</button>
 <button class="nav" data-v="rep" onclick="go('rep')">📊 Report</button>
 <button class="nav" data-v="set" onclick="go('set')">⚙️ Settings</button></aside>
-<main><div class="mbrand"><img src="/logo.jpg" alt="Kikoo"><b>Kikoo</b></div><header><input class="search" id="q" placeholder="🔍 Search orders or clients…" oninput="q=this.value;if(view=='dash')view='orders';render()">
+<main><div class="mbrand"><img src="/logo.jpg" alt="Kikoo"><b>Kikoo</b></div><header><input class="search" id="q" placeholder="🔍 Search orders or clients…" oninput="q=this.value;fl='All';if(view!='orders'&&view!='clients'){view='orders';pushNd()}render()">
 <button class="btn" onclick="oForm()">+ New order</button></header><section id="v"></section></main></div>
 <div id="modal"></div><div id="toast"></div>
 <script>
@@ -141,11 +141,16 @@ ${od?`<div class="alert">⚠️ ${od} order${od>1?'s are':' is'} past the delive
 <div class="rev"><div><b>${money(sum(ws,addD(ws,6)))}</b><span class="mu">This week</span></div><div><b>${money(sum(new Date(y,m,1),new Date(y,m+1,0)))}</b><span class="mu">This month</span></div><div><b>${money(sum(new Date(y,0,1),new Date(y,11,31)))}</b><span class="mu">This year</span></div></div>${svg}</div>
 <div class="card"><h3>Clients by priority</h3>${cs.length?cs.slice(0,6).map(x=>`<div class="row" onclick="cForm('${x.c.id}')"><div class="m"><b>${esc(x.c.name)}</b><small>Next: ${fmt(x.os[0].deliveryDate)} · ${x.os.length} order${x.os.length>1?'s':''}</small></div>${dueTag(x.os[0])}<small>${money(x.os.reduce((s,o)=>s+Math.max(0,bal(o)),0))}</small></div>`).join(''):'<div class="empty">No active clients yet. Add your first order!</div>'}</div></div>
 <h2 style="margin:6px 0 12px">Coming up</h2><div class="grid gp">${G.map(g=>{const l=act.filter(o=>grp(o)==g);return l.length||g!='Overdue'?`<div class="card"><h3>${g}<span class="pill">${l.length}</span></h3>${l.length?l.map(orow).join(''):'<div class="empty">Nothing due 🎉</div>'}</div>`:''}).join('')}</div>`}
+const nrm=s=>String(s==null?'':s).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+const hit=(text,k)=>{const t=nrm(text);return nrm(k).split(/\s+/).filter(Boolean).every(w=>t.includes(w))};
+const dig=s=>String(s||'').replace(/\D/g,'');
+const ohay=o=>{const c=cli(o.clientId)||{};return[o.title,o.details,'#'+o.no,o.addr,o.status,c.name,c.phone,dig(c.phone),c.addr,c.child].join(' ')};
+const chay=c=>[c.name,c.phone,dig(c.phone),c.child,c.addr,c.email].join(' ');
 function ordersV(){
-const k=q.toLowerCase(),l=S.orders.filter(o=>(fl=='All'||o.status==fl)&&(!k||(o.title+(cli(o.clientId)?.name||'')+o.details+'#'+o.no).toLowerCase().includes(k))).sort((a,b)=>(a.deliveryDate||'9').localeCompare(b.deliveryDate||'9'));
+const l=S.orders.filter(o=>(fl=='All'||o.status==fl)&&(!q.trim()||hit(ohay(o),q))).sort((a,b)=>(a.deliveryDate||'9').localeCompare(b.deliveryDate||'9'));
 return`<h1 style="margin-bottom:14px">Orders</h1><div class="tabs">${['All',...STG].map(s=>`<span class="tab ${fl==s?'on':''}" onclick="fl='${s}';render()">${s}</span>`).join('')}</div><div class="card">${l.length?l.map(orow).join(''):'<div class="empty">No orders found.</div>'}</div>`}
 function clientsV(){
-const k=q.toLowerCase(),l=S.clients.filter(c=>!k||(c.name+c.phone+(c.child||'')).toLowerCase().includes(k)).sort((a,b)=>a.name.localeCompare(b.name));
+const l=S.clients.filter(c=>!q.trim()||hit(chay(c),q)||S.orders.some(o=>o.clientId==c.id&&hit(ohay(o),q))).sort((a,b)=>a.name.localeCompare(b.name));
 return`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px"><h1>Clients</h1><button class="btn" onclick="cForm()">+ New client</button></div><div class="card">${l.length?l.map(c=>{const os=S.orders.filter(o=>o.clientId==c.id);return`<div class="row" onclick="cForm('${c.id}')"><div class="ic" style="background:#9fd6cc22;width:40px;height:40px">🎂</div><div class="m"><b>${esc(c.name)}</b><small>${esc(c.phone)}${c.child?' · '+esc(c.child):''}</small></div><small>${os.length} order${os.length!=1?'s':''}<br>${money(os.reduce((s,o)=>s+paid(o),0))} paid</small></div>`}).join(''):'<div class="empty">No clients yet.</div>'}</div>`}
 function setV(){return`<h1 style="margin-bottom:14px">Settings</h1><div class="card" style="max-width:520px"><form id="f" onsubmit="return saveSet(event)" class="f"><div class="w">${fld('Business name (shown on receipts)','biz',S.settings.biz)}</div></form><div class="acts"><button class="btn" onclick="saveSet()">Save</button></div><hr><h3>Backup</h3><p class="mu">Download a copy of all your data now and then, and keep it safe.</p><div class="acts"><button class="btn g" onclick="backup()">⬇️ Download backup</button><label class="btn g" style="cursor:pointer;color:var(--tx)">⬆️ Restore backup<input type="file" accept=".json" hidden onchange="restore(this)"></label></div><hr><button class="btn d" onclick="logout()">Sign out</button></div>`}
 function saveSet(e){e&&e.preventDefault();S.settings.biz=$('#f [name=biz]').value||'Kikoo';save();render();return false}
