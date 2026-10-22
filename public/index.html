@@ -242,29 +242,38 @@ function receiptFile(id,i){const o=ord(id),c=cli(o.clientId)||{name:'',phone:''}
   return new File([receiptPdf(o,c,p,i)],`Kikoo-Receipt-R-${o.no}-${i+1}-${nm}.pdf`,{type:'application/pdf'})}
 /* ---- Report + Excel export ---- */
 const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
-let rp={mode:'all',y:new Date().getFullYear(),m:new Date().getMonth()+1};
+const BYN={any:'order or delivery date',del:'delivery date',ord:'order date'};
+let rp={mode:'all',by:'any',y:new Date().getFullYear(),m:new Date().getMonth()+1};
 const delivered=o=>['Delivered','Closed'].includes(o.status);
-function repRows(){
-  let os=S.orders.filter(o=>{if(rp.mode=='all')return true;const d=o.orderDate||'';if(d.slice(0,4)!=String(rp.y))return false;return rp.mode=='year'||+d.slice(5,7)==rp.m});
-  os.sort((a,b)=>(a.orderDate||'9999').localeCompare(b.orderDate||'9999')||(a.no-b.no));
+const pdates=(o,by)=>by=='ord'?[o.orderDate||o.deliveryDate]:by=='del'?[o.deliveryDate||o.orderDate]:[o.orderDate,o.deliveryDate];
+function repRows(by){
+  by=by||rp.by;
+  const hit=d=>!!d&&d.slice(0,4)==String(rp.y)&&(rp.mode=='year'||+d.slice(5,7)==rp.m);
+  const key=o=>(by=='del'?(o.deliveryDate||o.orderDate):(o.orderDate||o.deliveryDate))||'9999';
+  const os=S.orders.filter(o=>rp.mode=='all'||pdates(o,by).some(hit));
+  os.sort((a,b)=>key(a).localeCompare(key(b))||(a.no-b.no));
   return os.map(o=>{const c=cli(o.clientId)||{},tot=+o.amount||0,pd_=paid(o);
-    return{date:o.orderDate||'',no:o.no,name:c.name||'',phone:c.phone||'',addr:o.addr||c.addr||'',title:o.title||'',total:tot,paid:pd_,due:tot-pd_,del:delivered(o)}});
+    return{date:o.orderDate||'',ddate:o.deliveryDate||'',no:o.no,name:c.name||'',phone:c.phone||'',addr:o.addr||c.addr||'',title:o.title||'',total:tot,paid:pd_,due:tot-pd_,del:delivered(o)}});
 }
-function repLabel(){return rp.mode=='all'?'Full report':rp.mode=='year'?String(rp.y):MONTHS[rp.m-1]+' '+rp.y}
+function repLabel(){const base=rp.mode=='all'?'Full report':rp.mode=='year'?String(rp.y):MONTHS[rp.m-1]+' '+rp.y;return rp.mode=='all'?base:base+' · by '+BYN[rp.by]}
 function repV(){
-  const yrs=[...new Set([new Date().getFullYear(),...S.orders.map(o=>+(o.orderDate||'').slice(0,4)).filter(Boolean)])].sort((a,b)=>b-a);
+  const yrs=[...new Set([new Date().getFullYear(),...S.orders.flatMap(o=>[o.orderDate,o.deliveryDate]).map(d=>+(d||'').slice(0,4)).filter(Boolean)])].sort((a,b)=>b-a);
   const rows=repRows(),T=rows.reduce((a,r)=>({total:a.total+r.total,paid:a.paid+r.paid,due:a.due+r.due}),{total:0,paid:0,due:0});
   const opt=(v,t,on)=>`<option value="${v}"${on?' selected':''}>${t}</option>`;
+  let empty='No orders for this period.';
+  if(!rows.length&&rp.mode!='all'&&rp.by!='any'){const n=repRows('any').length;if(n)empty+=` ${n} order${n>1?'s':''} found when matching by “order or delivery date” – change “Match by” above.`}
   return`<h1 style="margin-bottom:14px">Report</h1><div class="card"><div class="rbar">
 <label>Period<select onchange="rp.mode=this.value;render()">${opt('all','Full report (all orders)',rp.mode=='all')}${opt('year','By year',rp.mode=='year')}${opt('month','By month',rp.mode=='month')}</select></label>
 ${rp.mode!='all'?`<label>Year<select onchange="rp.y=+this.value;render()">${yrs.map(y=>opt(y,y,y==rp.y)).join('')}</select></label>`:''}
 ${rp.mode=='month'?`<label>Month<select onchange="rp.m=+this.value;render()">${MONTHS.map((m,i)=>opt(i+1,m,i+1==rp.m)).join('')}</select></label>`:''}
-<button class="btn" onclick="exportReport()">⬇️ Export to Excel</button></div></div>
+${rp.mode!='all'?`<label>Match by<select onchange="rp.by=this.value;render()">${Object.entries(BYN).map(([k,t])=>opt(k,t.charAt(0).toUpperCase()+t.slice(1),k==rp.by)).join('')}</select></label>`:''}
+<button class="btn" onclick="exportReport()">⬇️ Export to Excel</button></div>
+${rp.mode!='all'&&rp.by=='any'?'<small style="display:block;margin-top:10px;color:var(--mu)">An order appears in a month if its order date or its delivery date falls in that month, so an order placed in one month and delivered in the next shows in both.</small>':''}</div>
 <div class="rsum"><div><b>${rows.length}</b><small>Orders · ${esc(repLabel())}</small></div><div><b>${money(T.total)}</b><small>Total amount</small></div><div><b>${money(T.paid)}</b><small>Paid</small></div><div><b>${money(T.due)}</b><small>Amount due</small></div></div>
-<div class="card" style="padding:0;overflow:auto"><table class="rt"><thead><tr><th>Order date</th><th>Order #</th><th>Client</th><th>Mobile</th><th>Address</th><th>Description</th><th class="r">Total</th><th class="r">Paid</th><th class="r">Due</th><th>Delivered</th></tr></thead><tbody>${rows.length?rows.map(r=>`<tr><td>${fmt(r.date)}</td><td>${r.no}</td><td>${esc(r.name)}</td><td>${esc(r.phone)}</td><td>${esc(r.addr)}</td><td>${esc(r.title)}</td><td class="r">${money(r.total)}</td><td class="r">${money(r.paid)}</td><td class="r" style="${r.due>0?'color:var(--amb)':''}">${money(r.due)}</td><td style="color:var(${r.del?'--mint':'--pnk'})">${r.del?'Yes':'No'}</td></tr>`).join(''):'<tr><td colspan="10" class="empty">No orders for this period.</td></tr>'}</tbody></table></div>`}
+<div class="card" style="padding:0;overflow:auto"><table class="rt"><thead><tr><th>Order date</th><th>Delivery date</th><th>Order #</th><th>Client</th><th>Mobile</th><th>Address</th><th>Description</th><th class="r">Total</th><th class="r">Paid</th><th class="r">Due</th><th>Delivered</th></tr></thead><tbody>${rows.length?rows.map(r=>`<tr><td>${fmt(r.date)}</td><td>${fmt(r.ddate)}</td><td>${r.no}</td><td>${esc(r.name)}</td><td>${esc(r.phone)}</td><td>${esc(r.addr)}</td><td>${esc(r.title)}</td><td class="r">${money(r.total)}</td><td class="r">${money(r.paid)}</td><td class="r" style="${r.due>0?'color:var(--amb)':''}">${money(r.due)}</td><td style="color:var(${r.del?'--mint':'--pnk'})">${r.del?'Yes':'No'}</td></tr>`).join(''):`<tr><td colspan="11" class="empty">${empty}</td></tr>`}</tbody></table></div>`}
 function exportReport(){
   const rows=repRows();if(!rows.length)return alert('There are no orders for this period.');
-  const tag=rp.mode=='all'?'Full-Report':rp.mode=='year'?String(rp.y):`${rp.y}-${String(rp.m).padStart(2,'0')}-${MONTHS[rp.m-1]}`;
+  const tag=rp.mode=='all'?'Full-Report':(rp.mode=='year'?String(rp.y):`${rp.y}-${String(rp.m).padStart(2,'0')}-${MONTHS[rp.m-1]}`)+'-by-'+BYN[rp.by].replace(/ /g,'-');
   const blob=xlsxBook(rows,repLabel()),u=URL.createObjectURL(blob),a=document.createElement('a');
   a.href=u;a.download=`Kikoo-Orders-${tag}.xlsx`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(u);a.remove()},4000);
   toast('Excel file ready ✓');
@@ -274,18 +283,18 @@ const xe=s=>String(s==null?'':s).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001
 const xdate=s=>{const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(s||'');return m?Math.round(Date.UTC(+m[1],+m[2]-1,+m[3])/864e5)+25569:null};
 function xlsxBook(rows,label){
   const n=rows.length,last=n+1,tr=n+3,cl=i=>String.fromCharCode(65+i);
+  const COLS=[['Order date',14],['Delivery date',14],['Order #',9],['Client name',24],['Mobile number',17],['Address',36],['Description',30],['Total amount',16],['Payment received',18],['Amount due',16],['Delivered',12]];
+  const iT=7,iP=8,iD=9,iPh=4,lc=cl(COLS.length-1);
   const S_=(r,c,v,s)=>`<c r="${cl(c)}${r}" t="inlineStr" s="${s}"><is><t xml:space="preserve">${xe(v)}</t></is></c>`,
         N_=(r,c,v,s)=>`<c r="${cl(c)}${r}" s="${s}"><v>${v}</v></c>`,
         F_=(r,c,f,v,s)=>`<c r="${cl(c)}${r}" s="${s}"><f>${f}</f><v>${v}</v></c>`,
         E_=(r,c,s)=>`<c r="${cl(c)}${r}" s="${s}"/>`;
-  const heads=['Order date','Order #','Client name','Mobile number','Address','Description','Total amount','Payment received','Amount due','Delivered'];
-  let sd=`<row r="1" ht="26" customHeight="1">${heads.map((t,i)=>S_(1,i,t,1)).join('')}</row>`;
-  rows.forEach((r,k)=>{const x=k+2,d=xdate(r.date);
-    sd+=`<row r="${x}">${d==null?E_(x,0,2):N_(x,0,d,2)}${N_(x,1,r.no,7)}${S_(x,2,r.name,0)}${S_(x,3,r.phone,0)}${S_(x,4,r.addr,0)}${S_(x,5,r.title,0)}${N_(x,6,r.total,3)}${N_(x,7,r.paid,3)}${F_(x,8,`G${x}-H${x}`,r.total-r.paid,3)}${S_(x,9,r.del?'Yes':'No',7)}</row>`});
+  let sd=`<row r="1" ht="26" customHeight="1">${COLS.map((c,i)=>S_(1,i,c[0],1)).join('')}</row>`;
+  rows.forEach((r,k)=>{const x=k+2,d1=xdate(r.date),d2=xdate(r.ddate);
+    sd+=`<row r="${x}">${d1==null?E_(x,0,2):N_(x,0,d1,2)}${d2==null?E_(x,1,2):N_(x,1,d2,2)}${N_(x,2,r.no,7)}${S_(x,3,r.name,0)}${S_(x,4,r.phone,0)}${S_(x,5,r.addr,0)}${S_(x,6,r.title,0)}${N_(x,iT,r.total,3)}${N_(x,iP,r.paid,3)}${F_(x,iD,`${cl(iT)}${x}-${cl(iP)}${x}`,r.total-r.paid,3)}${S_(x,10,r.del?'Yes':'No',7)}</row>`});
   const T=rows.reduce((a,r)=>({t:a.t+r.total,p:a.p+r.paid}),{t:0,p:0});
-  sd+=`<row r="${tr}">${S_(tr,0,`TOTAL · ${n} order${n>1?'s':''} · ${label}`,5)}${[1,2,3,4,5].map(c=>E_(tr,c,8)).join('')}${F_(tr,6,`SUM(G2:G${last})`,T.t,6)}${F_(tr,7,`SUM(H2:H${last})`,T.p,6)}${F_(tr,8,`SUM(I2:I${last})`,T.t-T.p,6)}${E_(tr,9,8)}</row>`;
-  const widths=[14,9,24,17,36,30,16,18,16,12];
-  const sheet=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetPr><pageSetUpPr fitToPage="1"/></sheetPr><dimension ref="A1:J${tr}"/><sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews><sheetFormatPr defaultRowHeight="15"/><cols>${widths.map((w,i)=>`<col min="${i+1}" max="${i+1}" width="${w}" customWidth="1"/>`).join('')}</cols><sheetData>${sd}</sheetData><autoFilter ref="A1:J${last}"/><pageMargins left="0.5" right="0.5" top="0.6" bottom="0.6" header="0.3" footer="0.3"/><pageSetup orientation="landscape" fitToWidth="1" fitToHeight="0"/><ignoredErrors><ignoredError sqref="D2:D${last}" numberStoredAsText="1"/></ignoredErrors></worksheet>`;
+  sd+=`<row r="${tr}">${S_(tr,0,`TOTAL · ${n} order${n>1?'s':''} · ${label}`,5)}${[1,2,3,4,5,6].map(c=>E_(tr,c,8)).join('')}${F_(tr,iT,`SUM(${cl(iT)}2:${cl(iT)}${last})`,T.t,6)}${F_(tr,iP,`SUM(${cl(iP)}2:${cl(iP)}${last})`,T.p,6)}${F_(tr,iD,`SUM(${cl(iD)}2:${cl(iD)}${last})`,T.t-T.p,6)}${E_(tr,10,8)}</row>`;
+  const sheet=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetPr><pageSetUpPr fitToPage="1"/></sheetPr><dimension ref="A1:${lc}${tr}"/><sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews><sheetFormatPr defaultRowHeight="15"/><cols>${COLS.map((c,i)=>`<col min="${i+1}" max="${i+1}" width="${c[1]}" customWidth="1"/>`).join('')}</cols><sheetData>${sd}</sheetData><autoFilter ref="A1:${lc}${last}"/><pageMargins left="0.5" right="0.5" top="0.6" bottom="0.6" header="0.3" footer="0.3"/><pageSetup orientation="landscape" fitToWidth="1" fitToHeight="0"/><ignoredErrors><ignoredError sqref="${cl(iPh)}2:${cl(iPh)}${last}" numberStoredAsText="1"/></ignoredErrors></worksheet>`;
   const money_=`&quot;${xe(CUR)}&quot;#,##0;[Red]-&quot;${xe(CUR)}&quot;#,##0`;
   const styles=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><numFmts count="2"><numFmt numFmtId="164" formatCode="dd\\ mmm\\ yyyy"/><numFmt numFmtId="165" formatCode="${money_}"/></numFmts><fonts count="3"><font><sz val="10"/><name val="Arial"/></font><font><b/><sz val="10"/><color rgb="FFFFFFFF"/><name val="Arial"/></font><font><b/><sz val="10"/><name val="Arial"/></font></fonts><fills count="4"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF1F8A7D"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFE6F4F1"/><bgColor indexed="64"/></patternFill></fill></fills><borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border><border><left/><right/><top style="thin"><color rgb="FF1F8A7D"/></top><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="9"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf><xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1" applyAlignment="1"><alignment horizontal="left"/></xf><xf numFmtId="165" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="2" fillId="3" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="165" fontId="2" fillId="3" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment horizontal="center"/></xf><xf numFmtId="0" fontId="2" fillId="3" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1"/></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`;
   const ct=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>`;
