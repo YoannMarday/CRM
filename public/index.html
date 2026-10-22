@@ -83,8 +83,8 @@ aside .logo{text-align:center;padding-bottom:14px}aside .logo img{display:block;
 </style></head><body>
 <div id="login" hidden><form onsubmit="return login(event)">
 <img src="/logo.jpg" alt="Kikoo" class="lg"><h1 class="logo" style="padding:0">Kikoo</h1>
-<input id="lu" placeholder="Username" autocomplete="username" required>
-<input id="lp" type="password" placeholder="Password" autocomplete="current-password" required>
+<input id="lu" placeholder="Username" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" required>
+<input id="lp" type="password" placeholder="Password" autocomplete="current-password" autocapitalize="none" autocorrect="off" spellcheck="false" required>
 <button class="btn">Sign in</button><div id="le" class="mu"></div></form></div>
 <div id="app" hidden>
 <aside><div class="logo"><img src="/logo.jpg" alt="Kikoo"><span>Kikoo</span></div>
@@ -96,6 +96,7 @@ aside .logo{text-align:center;padding-bottom:14px}aside .logo img{display:block;
 <main><div class="mbrand"><img src="/logo.jpg" alt="Kikoo"><b>Kikoo</b></div><header><input class="search" id="q" placeholder="🔍 Search orders or clients…" oninput="q=this.value;fl='All';if(view!='orders'&&view!='clients'){view='orders';pushNd()}render()">
 <button class="btn" onclick="oForm()">+ New order</button></header><section id="v"></section></main></div>
 <div id="modal"></div><div id="toast"></div>
+<script src="/receipt-pdf.js"></script>
 <script>
 const CUR='Rs ',STG=['Enquiry','Confirmed','In production','Ready','Delivered','Closed'],TYP=['Personalised item','3D cut-out','Birthday deco','Mixed order'],PAY=['Cash','Bank transfer','Juice','Card','Other'];
 let S={clients:[],orders:[],seq:1000,settings:{biz:'Kikoo'}},view='dash',q='',fl='All',rm='month',tm;
@@ -111,7 +112,7 @@ const open_=o=>!['Delivered','Closed'].includes(o.status);
 function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('on');clearTimeout(tm);tm=setTimeout(()=>e.classList.remove('on'),1400)}
 async function save(){try{const r=await fetch('/api/data',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(S)});if(r.status==401)return location.reload();toast('Saved ✓')}catch(e){toast('⚠️ Not saved – check connection')}}
 async function boot(){const r=await fetch('/api/data');if(r.status==401){$('#login').hidden=false;return}const d=await r.json();S=Object.assign(S,d);S.settings=Object.assign({biz:'Kikoo'},S.settings);if(S.settings.biz=='My Party Studio')S.settings.biz='Kikoo';S.orders.forEach(o=>{o.payments=(o.payments||[]).filter(p=>+p.amount>0)});$('#login').hidden=true;$('#app').hidden=false;lastAct=lastPing=Date.now();render();loadLogo()}
-async function login(e){e.preventDefault();const r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user:$('#lu').value,pass:$('#lp').value})});if(r.ok)boot();else $('#le').textContent=(await r.json()).error||'Wrong username or password';return false}
+async function login(e){e.preventDefault();const r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user:$('#lu').value,pass:$('#lp').value})});if(r.ok)boot();else $('#le').textContent=((await r.json().catch(()=>({}))).error)||'Wrong username or password';return false}
 async function logout(){await fetch('/api/logout',{method:'POST'});location.reload()}
 function go(v){view=v;q='';$('#q').value='';render();if(v=='dash')popNd();else pushNd()}
 function render(){document.querySelectorAll('.nav').forEach(n=>n.classList.toggle('on',n.dataset.v==view));$('#v').innerHTML=({dash,orders:ordersV,clients:clientsV,rep:repV,set:setV})[view]();scrollTo(0,0)}
@@ -190,58 +191,31 @@ function addP(e,id){e.preventDefault();const d=Object.fromEntries(new FormData(e
 function delP(id,i){if(confirm('Remove this payment?')){ord(id).payments.splice(i,1);save();render();oForm(id)}}
 function closeO(id){const o=ord(id);if(bal(o)>0&&!confirm('There is still '+money(bal(o))+' unpaid. Close anyway?'))return;o.status='Closed';save();cm();render()}
 function delO(id){if(confirm('Delete this order permanently?')){S.orders=S.orders.filter(o=>o.id!=id);save();cm();render()}}
-function receipt(id,i){const o=ord(id),c=cli(o.clientId)||{name:'',phone:''},p=o.payments[i],w=open('','_blank');if(!w)return alert('Please allow pop-ups to print receipts.');
+async function receipt(id,i){const o=ord(id),c=cli(o.clientId)||{name:'',phone:''},p=o.payments[i],w=open('','_blank');if(!w)return alert('Please allow pop-ups to print receipts.');
+w.document.write('<title>Receipt</title><body style="font-family:sans-serif;padding:30px;color:#555">Preparing receipt…</body>');
 const biz=S.settings.biz||'Kikoo',own=/^\s*kikoo\s*$/i.test(biz),ph=waNum(c.phone),no=`R-${o.no}-${i+1}`;
-const share=`Hello ${c.name}, thank you! 🎉 Here is your payment receipt ${no} from ${biz}.`,txt=`Hello ${c.name}, thank you! 🎉 Please find your payment receipt ${no} attached. ${biz}`,wa=ph?`https://wa.me/${ph}?text=${encodeURIComponent(txt)}`:'';
+let link='';
+try{const r=await fetch('/api/receipt-link',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({orderId:id,idx:i})});if(r.status==401){w.close();return location.reload()}if(r.ok)link=location.origin+(await r.json()).path}catch(e){}
+const share=`Hello ${c.name}, thank you! 🎉 Here is your payment receipt ${no} from ${biz}.`,
+ txt=link?`${share} ${link}`:`Hello ${c.name}, thank you! 🎉 We received your payment of ${money(p.amount)} on ${fmt(p.date)} for "${o.title}" (Order #${o.no}). Balance: ${money(bal(o))}. ${biz}`,
+ wa=ph?`https://wa.me/${ph}?text=${encodeURIComponent(txt)}`:'';
 const js=s=>JSON.stringify(s).replace(/</g,'\\u003c');
-const btns=`<style>.b{display:inline-block;background:#9fd6cc;color:#10231f;padding:10px 14px;border-radius:10px;text-decoration:none;font-weight:bold;font-size:14px}@media print{.np{display:none!important}}</style><div class="np" style="margin-top:18px;display:flex;gap:10px;flex-wrap:wrap;align-items:center"><a class="b" href="#" onclick="return sendPdf()">💬 Send PDF on WhatsApp</a><a class="b" href="#" onclick="return dlPdf()">📄 Download PDF</a><a class="b" href="#" onclick="print();return false">🖨️ Print</a></div>${ph?'':'<p class="np" style="color:#888;font-size:13px">No phone number saved for this client.</p>'}<script>var WA=${js(wa)},MSG=${js(share)},ID=${js(id)},IDX=${i};
+const note=!ph?'No phone number saved for this client.':link?'“WhatsApp client” opens this client’s chat with the PDF receipt link ready to send. To attach the PDF file itself, use “Share / save PDF file”.':'The PDF link could not be created, so a text receipt is used instead.';
+const btns=`<style>.b{display:inline-block;background:#9fd6cc;color:#10231f;padding:10px 14px;border-radius:10px;text-decoration:none;font-weight:bold;font-size:14px}@media print{.np{display:none!important}}</style><div class="np" style="margin-top:18px;display:flex;gap:10px;flex-wrap:wrap;align-items:center">${wa?`<a class="b" href="${esc(wa)}" target="_blank" rel="noopener">💬 WhatsApp client</a>`:''}<a class="b" href="#" onclick="return sendPdf()">📎 Share / save PDF file</a><a class="b" href="#" onclick="print();return false">🖨️ Print</a></div><p class="np" style="color:#777;font-size:13px">${note}</p><script>var MSG=${js(share)},ID=${js(id)},IDX=${i};
 function pf(){return opener.receiptFile(ID,IDX)}
 function dl(f){var u=URL.createObjectURL(f),a=document.createElement('a');a.href=u;a.download=f.name;document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(u);a.remove()},4000)}
 function bad(){alert('Could not create the PDF. Please open the receipt again from the CRM.');return false}
-function dlPdf(){try{dl(pf())}catch(e){return bad()}return false}
 function sendPdf(){var f;try{f=pf()}catch(e){return bad()}
-if(navigator.canShare&&navigator.canShare({files:[f]})){navigator.share({files:[f],text:MSG}).catch(function(){})}
-else{dl(f);if(WA)window.open(WA,'_blank')}
+if(navigator.canShare&&navigator.canShare({files:[f]})){navigator.share({files:[f],text:MSG}).catch(function(){})}else{dl(f)}
 return false}
 <\/script>`;
-w.document.write(`<title>Receipt ${no}</title><body style="font-family:sans-serif;max-width:420px;margin:30px auto;color:#222;padding:0 16px"><div style="text-align:center"><img src="${location.origin}/logo.jpg" alt="Kikoo" style="width:150px;height:150px;border-radius:24px"></div>${own?'':`<h2 style="text-align:center">${esc(biz)}</h2>`}<p>Payment receipt ${no}<br>${fmt(p.date)}</p><hr><p>Received from <b>${esc(c.name)}</b><br>For: ${esc(o.title)} (Order #${o.no})</p><h1>${money(p.amount)}</h1><p>Method: ${esc(p.method)}</p><hr><p>Order total: ${money(o.amount)}<br>Paid to date: ${money(paid(o))}<br><b>Balance: ${money(bal(o))}</b></p><p>Thank you! 🎉</p>${btns}`);w.document.close()}
+w.document.open();w.document.write(`<title>Receipt ${no}</title><body style="font-family:sans-serif;max-width:420px;margin:30px auto;color:#222;padding:0 16px"><div style="text-align:center"><img src="${location.origin}/logo.jpg" alt="Kikoo" style="width:150px;height:150px;border-radius:24px"></div>${own?'':`<h2 style="text-align:center">${esc(biz)}</h2>`}<p>Payment receipt ${no}<br>${fmt(p.date)}</p><hr><p>Received from <b>${esc(c.name)}</b><br>For: ${esc(o.title)} (Order #${o.no})</p><h1>${money(p.amount)}</h1><p>Method: ${esc(p.method)}</p><hr><p>Order total: ${money(o.amount)}<br>Paid to date: ${money(paid(o))}<br><b>Balance: ${money(bal(o))}</b></p><p>Thank you! 🎉</p>${btns}`);w.document.close()}
 
 /* ---- PDF receipt (logo on top, details below) ---- */
 let LOGO=null;const LOGO_PX=720;
 function loadLogo(){fetch('/logo-receipt.jpg').then(r=>r.arrayBuffer()).then(b=>{LOGO=new Uint8Array(b)}).catch(()=>{})}
-const pdfStr=s=>String(s==null?'':s).replace(/[\u2018\u2019]/g,"'").replace(/[\u201C\u201D]/g,'"').replace(/[\u2013\u2014]/g,'-').replace(/\u2026/g,'...').replace(/[\u{1F000}-\u{1FFFF}\u2600-\u27BF\uFE0F\u200D]/gu,'').replace(/[^\x20-\x7E\xA0-\xFF]/g,'?').replace(/\\/g,'\\\\').replace(/\(/g,'\\(').replace(/\)/g,'\\)');
-function receiptPdf(o,c,p,i){
-  const W=420,H=595,M=40,ops=[],biz=S.settings.biz||'Kikoo',own=/^\s*kikoo\s*$/i.test(biz),no=`R-${o.no}-${i+1}`;
-  const T=(t,x,top,size,bold,col)=>ops.push(`BT /${bold?'F2':'F1'} ${size} Tf ${col||'0.1 0.1 0.1 rg'} ${x} ${H-top} Td (${pdfStr(t)}) Tj ET`);
-  const hr=top=>ops.push(`0.75 G 0.7 w ${M} ${H-top} m ${W-M} ${H-top} l S`),GR='0.45 0.45 0.45 rg';
-  if(LOGO)ops.push(`q 170 0 0 170 ${(W-170)/2} ${H-28-170} cm /Im1 Do Q`);
-  let t=222;if(!own){T(biz,M,t,13,1);t+=22}
-  T('Payment receipt '+no,M,t,16,1);t+=18;T(fmt(p.date),M,t,11,0,GR);t+=14;hr(t);t+=26;
-  T('Received from',M,t,10,0,GR);t+=17;T(c.name,M,t,15,1);t+=26;
-  T('For',M,t,10,0,GR);t+=17;T(`${o.title} (Order #${o.no})`,M,t,12);t+=44;
-  T(money(p.amount),M,t,28,1,'0.07 0.45 0.85 rg');t+=24;T('Method: '+p.method,M,t,11,0,GR);t+=18;hr(t);t+=26;
-  T('Order total',M,t,12);T(money(o.amount),200,t,12);t+=18;
-  T('Paid to date',M,t,12);T(money(paid(o)),200,t,12);t+=18;
-  T('Balance',M,t,13,1);T(money(bal(o)),200,t,13,1);t+=38;
-  T('Thank you!',M,t,14,1);
-  return buildPdf(ops.join('\n'),W,H);
-}
-function buildPdf(content,W,H){
-  const enc=s=>{const a=new Uint8Array(s.length);for(let k=0;k<s.length;k++)a[k]=s.charCodeAt(k)&255;return a};
-  const chunks=[],offs=[];let pos=0;const add=x=>{const a=typeof x=='string'?enc(x):x;chunks.push(a);pos+=a.length};
-  const obj=(n,body)=>{offs[n]=pos;add(`${n} 0 obj\n${body}\nendobj\n`)};
-  add('%PDF-1.4\n');
-  obj(1,'<< /Type /Catalog /Pages 2 0 R >>');obj(2,'<< /Type /Pages /Kids [3 0 R] /Count 1 >>');
-  obj(3,`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${W} ${H}] /Resources << /Font << /F1 4 0 R /F2 5 0 R >>${LOGO?' /XObject << /Im1 6 0 R >>':''} >> /Contents 7 0 R >>`);
-  obj(4,'<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>');
-  obj(5,'<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>');
-  if(LOGO){offs[6]=pos;add(`6 0 obj\n<< /Type /XObject /Subtype /Image /Width ${LOGO_PX} /Height ${LOGO_PX} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${LOGO.length} >>\nstream\n`);add(LOGO);add('\nendstream\nendobj\n')}
-  else obj(6,'null');
-  obj(7,`<< /Length ${content.length} >>\nstream\n${content}\nendstream`);
-  const xr=pos;add('xref\n0 8\n0000000000 65535 f \n');for(let n=1;n<=7;n++)add(String(offs[n]).padStart(10,'0')+' 00000 n \n');
-  add(`trailer\n<< /Size 8 /Root 1 0 R >>\nstartxref\n${xr}\n%%EOF`);
-  const out=new Uint8Array(pos);let at=0;chunks.forEach(a=>{out.set(a,at);at+=a.length});return out;
-}
+/* PDF building lives in /receipt-pdf.js (shared with the server) */
+function receiptPdf(o,c,p,i){return KikooReceipt.receiptPdf({o,c,p,i,biz:S.settings.biz,money,fmt,paid,bal,logo:LOGO,logoPx:LOGO_PX})}
 function receiptFile(id,i){const o=ord(id),c=cli(o.clientId)||{name:'',phone:''},p=o.payments[i];
   const nm=(c.name||'client').replace(/[^\w\-]+/g,'_');
   return new File([receiptPdf(o,c,p,i)],`Kikoo-Receipt-R-${o.no}-${i+1}-${nm}.pdf`,{type:'application/pdf'})}
