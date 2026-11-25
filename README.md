@@ -5,3 +5,7 @@
    Environment variables: APP_USER, APP_PASS, SESSION_SECRET (any long text), DATABASE_URL (the Neon string).
 Note: on Render Free the app sleeps after ~15 min idle; the first visit then takes about a minute to wake up.
 Currency: change `const CUR='Rs '` in public/index.html.
+
+Staff login (optional): add two more variables in Render > Environment: STAFF_USER and STAFF_PASS.
+Staff open the same web address, sign in, and only see: customers, new orders, delivery status and a calendar. No money.
+Wendy (APP_USER / APP_PASS) sees everything, sets prices and takes payments as before.

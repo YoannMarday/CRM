@@ -110,15 +110,15 @@ const waNum=p=>{let d=String(p||'').replace(/\D/g,'');return d.length==8?'230'+d
 const paid=o=>o.payments.reduce((s,p)=>s+ +p.amount,0),bal=o=>(+o.amount||0)-paid(o);
 const open_=o=>!['Delivered','Closed'].includes(o.status);
 function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('on');clearTimeout(tm);tm=setTimeout(()=>e.classList.remove('on'),1400)}
-async function save(){try{const r=await fetch('/api/data',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(S)});if(r.status==401)return location.reload();toast('Saved ✓')}catch(e){toast('⚠️ Not saved – check connection')}}
-async function boot(){const r=await fetch('/api/data');if(r.status==401){$('#login').hidden=false;return}const d=await r.json();S=Object.assign(S,d);S.settings=Object.assign({biz:'Kikoo'},S.settings);if(S.settings.biz=='My Party Studio')S.settings.biz='Kikoo';S.orders.forEach(o=>{o.payments=(o.payments||[]).filter(p=>+p.amount>0)});$('#login').hidden=true;$('#app').hidden=false;lastAct=lastPing=Date.now();render();loadLogo()}
+async function save(){try{const r=await fetch('/api/data',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(S)});if(r.status==401)return location.reload();if(!r.ok){toast('⚠️ Not saved – please try again');return}const j=await r.json().catch(()=>({}));if(j.seq)S.seq=Math.max(S.seq||0,j.seq);if(j.renum&&Object.keys(j.renum).length){S.orders.forEach(o=>{if(j.renum[o.id])o.no=j.renum[o.id]});if(!$('#modal').innerHTML)render()}toast('Saved ✓')}catch(e){toast('⚠️ Not saved – check connection')}}
+async function boot(){const r=await fetch('/api/data');if(r.status==401){$('#login').hidden=false;return}if(r.status==403){location.replace('/staff.html');return}const d=await r.json();S=Object.assign(S,d);S.settings=Object.assign({biz:'Kikoo'},S.settings);if(S.settings.biz=='My Party Studio')S.settings.biz='Kikoo';S.orders.forEach(o=>{o.payments=(o.payments||[]).filter(p=>+p.amount>0)});$('#login').hidden=true;$('#app').hidden=false;lastAct=lastPing=Date.now();render();loadLogo()}
 async function login(e){e.preventDefault();const r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user:$('#lu').value,pass:$('#lp').value})});if(r.ok)boot();else $('#le').textContent=((await r.json().catch(()=>({}))).error)||'Wrong username or password';return false}
 async function logout(){await fetch('/api/logout',{method:'POST'});location.reload()}
 function go(v){view=v;q='';$('#q').value='';render();if(v=='dash')popNd();else pushNd()}
 function render(){document.querySelectorAll('.nav').forEach(n=>n.classList.toggle('on',n.dataset.v==view));$('#v').innerHTML=({dash,orders:ordersV,clients:clientsV,rep:repV,set:setV})[view]();scrollTo(0,0)}
 const pill=o=>`<span class="pill s-${o.status}">${o.status}</span>`;
 function dueTag(o){if(!o.deliveryDate||!open_(o))return'';const t=today();if(o.deliveryDate<t)return'<span class="pill late">Overdue</span>';if(o.deliveryDate==t)return'<span class="pill soon">Today</span>';if(o.deliveryDate<=iso(addD(new Date(),2)))return'<span class="pill soon">Soon</span>';return''}
-const orow=o=>`<div class="row" onclick="oForm('${o.id}')"><div class="m"><b>${esc(o.title)}</b><small>${esc(cli(o.clientId)?.name||'?')} · #${o.no} · ${fmt(o.deliveryDate)}</small></div>${dueTag(o)}${o.priority!='Normal'?`<span class="pill soon">${o.priority}</span>`:''}<div style="text-align:right"><div>${pill(o)}</div>${bal(o)>0?`<small>Due ${money(bal(o))}</small>`:'<small>Paid ✓</small>'}</div></div>`;
+const orow=o=>`<div class="row" onclick="oForm('${o.id}')"><div class="m"><b>${esc(o.title)}${o.by=='staff'?' <span class="pill" style="font-size:11px">Staff</span>':''}</b><small>${esc(cli(o.clientId)?.name||'?')} · #${o.no} · ${fmt(o.deliveryDate)}</small></div>${dueTag(o)}${o.priority!='Normal'?`<span class="pill soon">${o.priority}</span>`:''}<div style="text-align:right"><div>${pill(o)}</div>${bal(o)>0?`<small>Due ${money(bal(o))}</small>`:'<small>Paid ✓</small>'}</div></div>`;
 function dash(){
 const now=new Date(),t=today(),ws=wk(now),we=iso(addD(ws,6)),nwe=iso(addD(ws,13)),me=iso(new Date(now.getFullYear(),now.getMonth()+1,0)),nme=iso(new Date(now.getFullYear(),now.getMonth()+2,0));
 const act=S.orders.filter(open_).sort((a,b)=>(a.deliveryDate||'9').localeCompare(b.deliveryDate||'9'));
@@ -297,6 +297,19 @@ function zipStore(files){
   E.setUint32(0,0x06054b50,true);E.setUint16(8,files.length,true);E.setUint16(10,files.length,true);E.setUint32(12,size,true);E.setUint32(16,off,true);
   return new Blob([...parts,...cd,new Uint8Array(E.buffer)],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
 }
+
+/* ---- customers & orders submitted by staff appear here automatically ---- */
+async function pollStaff(){
+  if($('#app').hidden||document.hidden)return;
+  try{const r=await fetch('/api/staff/new');if(r.status==401)return location.reload();if(!r.ok)return;const j=await r.json();
+    let nc=0,no=0;
+    (j.clients||[]).forEach(c=>{if(!S.clients.some(x=>x.id==c.id)){S.clients.push(c);nc++}});
+    (j.orders||[]).forEach(o=>{if(!S.orders.some(x=>x.id==o.id)){o.payments=o.payments||[];S.orders.push(o);no++}});
+    if(j.seq)S.seq=Math.max(S.seq||0,j.seq);
+    if(nc||no){toast('🆕 From staff: '+(no?no+' order'+(no>1?'s':''):'')+(no&&nc?' + ':'')+(nc?nc+' customer'+(nc>1?'s':''):''));if(!$('#modal').innerHTML&&['dash','orders','clients'].includes(view))render()}
+  }catch(e){}
+}
+setInterval(pollStaff,20000);
 
 /* ---- phone back button: first press returns to the dashboard ---- */
 const nd=()=>history.state&&history.state.nd;

@@ -12,5 +12,9 @@ services:
         sync: false
       - key: DATABASE_URL
         sync: false
+      - key: STAFF_USER
+        sync: false
+      - key: STAFF_PASS
+        sync: false
       - key: SESSION_SECRET
         generateValue: true

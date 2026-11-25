@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Kikoo · Staff</title>
+<link rel="icon" type="image/jpeg" href="/logo.jpg">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#12151c;--p:#1a1f2a;--p2:#222938;--ln:#2b3345;--tx:#e9eef5;--mu:#8b96a8;--mint:#9fd6cc;--amb:#e8b04b;--blu:#58a6e0;--pnk:#d9a7cf;--red:#ef7d7d;--r:16px}
+*{box-sizing:border-box;margin:0}
+html,body{background:var(--bg);color:var(--tx);font:15px/1.45 'DM Sans',system-ui,sans-serif}
+h1,h2,h3,.logo{font-family:'Fredoka','DM Sans',sans-serif;font-weight:600}
+button,input,select,textarea{font:inherit;color:inherit}
+[hidden]{display:none!important}
+#app{display:grid;grid-template-columns:230px 1fr;min-height:100vh}
+aside{background:var(--p);border-right:1px solid var(--ln);padding:22px 14px;position:sticky;top:0;height:100vh;display:flex;flex-direction:column;gap:6px}
+.logo{font-size:22px;padding:0 10px 18px;color:var(--mint)}
+.nav{display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:12px;background:none;border:0;color:var(--mu);cursor:pointer;text-align:left;font-weight:500}
+.nav:hover{background:var(--p2);color:var(--tx)}
+.nav.on{background:var(--mint);color:#0f2421}
+main{padding:22px 26px 40px;min-width:0}
+header{display:flex;gap:12px;align-items:center;margin-bottom:22px}
+.search{flex:1;background:var(--p);border:1px solid var(--ln);border-radius:14px;padding:12px 16px;outline:0}
+.search:focus,input:focus,select:focus,textarea:focus{border-color:var(--mint)}
+.btn{background:var(--mint);color:#0f2421;border:0;border-radius:12px;padding:11px 18px;font-weight:700;cursor:pointer;white-space:nowrap}
+.btn.g{background:var(--p2);color:var(--tx);border:1px solid var(--ln)}
+.btn.d{background:none;color:var(--red);border:1px solid var(--red)}
+.btn.s{padding:6px 12px;font-size:13px}
+.grid{display:grid;gap:16px}
+.g4{grid-template-columns:repeat(4,1fr)}.g2{grid-template-columns:1.6fr 1fr}.gp{grid-template-columns:repeat(auto-fit,minmax(250px,1fr))}
+.card{background:var(--p);border:1px solid var(--ln);border-radius:var(--r);padding:18px;min-width:0}
+.card h3{font-size:17px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.stat{display:flex;gap:14px;align-items:center}
+.ic{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;font-size:22px;flex:none}
+.stat b{font-size:24px;font-family:Fredoka;display:block;line-height:1.1}
+.stat span{color:var(--mu);font-size:13px}
+.row{display:flex;align-items:center;gap:12px;padding:11px 8px;border-radius:12px;cursor:pointer;border-bottom:1px solid var(--ln)}
+.row:last-child{border:0}.row:hover{background:var(--p2)}
+.row .m{flex:1;min-width:0}.row .m b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row small,.mu{color:var(--mu);font-size:13px}
+.pill{font-size:12px;padding:3px 10px;border-radius:99px;font-weight:700;white-space:nowrap;background:var(--p2)}
+.s-Enquiry{color:var(--mu)}.s-Confirmed{color:var(--blu);background:#58a6e022}.s-In\ production{color:var(--amb);background:#e8b04b22}
+.s-Ready{color:var(--mint);background:#9fd6cc22}.s-Delivered{color:var(--pnk);background:#d9a7cf22}.s-Closed{color:var(--mu)}
+.late{color:var(--red);background:#ef7d7d22}.soon{color:var(--amb);background:#e8b04b22}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.tab{background:var(--p);border:1px solid var(--ln);border-radius:99px;padding:6px 14px;cursor:pointer;color:var(--mu)}
+.tab.on{background:var(--mint);color:#0f2421;border-color:var(--mint);font-weight:700}
+.rev{display:flex;gap:26px;margin-bottom:10px;flex-wrap:wrap}.rev b{font-size:22px;font-family:Fredoka;display:block}
+.empty{color:var(--mu);padding:14px 4px}
+.alert{background:#ef7d7d1f;border:1px solid #ef7d7d66;border-radius:14px;padding:12px 16px;margin-bottom:16px;color:var(--red)}
+.ov{position:fixed;inset:0;background:#000a;display:grid;place-items:center;padding:14px;z-index:20;overflow:auto}
+.box{background:var(--p);border:1px solid var(--ln);border-radius:20px;padding:22px;width:min(640px,100%);max-height:92vh;overflow:auto}
+.box h2{margin-bottom:14px}
+.f{display:grid;grid-template-columns:1fr 1fr;gap:12px}.f .w{grid-column:1/-1}
+label{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--mu)}
+input,select,textarea{background:var(--bg);border:1px solid var(--ln);border-radius:10px;padding:10px 12px;outline:0;width:100%;color:var(--tx)}
+textarea{min-height:80px;resize:vertical}
+.acts{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
+hr{border:0;border-top:1px solid var(--ln);margin:18px 0}
+#toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--mint);color:#0f2421;padding:8px 18px;border-radius:99px;font-weight:700;opacity:0;transition:.3s;pointer-events:none;z-index:30}
+#toast.on{opacity:1}
+#login{min-height:100vh;display:grid;place-items:center;padding:20px}
+#login form{background:var(--p);border:1px solid var(--ln);border-radius:22px;padding:34px;width:min(360px,100%);display:grid;gap:14px;text-align:center}
+#login .big{font-size:46px}
+svg text{fill:var(--mu);font-size:11px;font-family:'DM Sans'}
+@media(max-width:860px){
+#app{grid-template-columns:1fr}
+aside{position:fixed;bottom:0;left:0;right:0;top:auto;height:auto;flex-direction:row;justify-content:space-around;padding:6px 6px calc(6px + env(safe-area-inset-bottom));z-index:10;border-top:1px solid var(--ln);border-right:0}
+.logo{display:none}.nav{flex-direction:column;gap:2px;padding:7px 12px;font-size:12px}
+main{padding:calc(14px + env(safe-area-inset-top)) 14px 100px}
+.g4{grid-template-columns:1fr 1fr}.g2{grid-template-columns:1fr}.f{grid-template-columns:1fr}
+}
+#login .lg{width:150px;height:150px;border-radius:26px;margin:0 auto}
+#login h1.logo{display:block!important;font-size:30px}
+aside .logo{text-align:center;padding-bottom:14px}aside .logo img{display:block;width:120px;height:120px;border-radius:24px;margin:0 auto 6px}
+.mbrand{display:none}
+@media(max-width:860px){.mbrand{display:flex;align-items:center;gap:10px;margin-bottom:12px}.mbrand img{width:40px;height:40px;border-radius:10px}.mbrand b{font:600 22px 'Fredoka','DM Sans',sans-serif;color:var(--mint)}}
+.rbar{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end}.rbar label{min-width:150px;flex:1 1 150px}.rbar .btn{flex:0 0 auto}
+.rsum{display:flex;gap:12px;flex-wrap:wrap;margin:14px 0}.rsum div{background:var(--p);border:1px solid var(--ln);border-radius:14px;padding:12px 16px;flex:1 1 120px}
+.rsum b{display:block;font:600 19px 'Fredoka','DM Sans',sans-serif}.rsum small{color:var(--mu);font-size:12px}
+.rt{border-collapse:collapse;width:100%;font-size:13px}.rt th,.rt td{padding:10px 12px;text-align:left;white-space:nowrap;border-bottom:1px solid var(--ln)}
+.rt th{color:var(--mu);font-weight:600;background:var(--p2)}.rt .r{text-align:right}.rt tr:last-child td{border-bottom:0}
+@media(max-width:860px){.nav{padding:7px 6px;font-size:11.5px}}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}.cw{color:var(--mu);font-size:12px;text-align:center;padding:4px 0}
+.cd{background:var(--p2);border:1px solid var(--ln);border-radius:12px;min-height:60px;padding:6px 7px;cursor:pointer;display:flex;flex-direction:column;gap:3px;font-size:13px}
+.cd.e{background:none;border:0;cursor:default}.cd.t{border-color:var(--mint)}.cd.sel{background:#9fd6cc22;border-color:var(--mint)}
+.cd i{font-style:normal;font-size:11px;font-weight:700;border-radius:99px;padding:1px 8px;width:fit-content}
+.cd i.o{background:#9fd6cc33;color:var(--mint)}.cd i.l{background:#ef7d7d33;color:var(--red)}.cd i.x{color:var(--mu);background:var(--p)}
+.cbar{display:flex;align-items:center;gap:10px;margin-bottom:12px}.cbar h2{flex:1;margin:0}
+.nav.lo{margin-top:auto}.mlo{display:none}
+@media(max-width:860px){.cd{min-height:46px;padding:4px;font-size:12px}.cd i{padding:0 5px;font-size:10px}.nav.lo{display:none}.mlo{display:inline-block;margin-left:auto}.mbrand{display:flex}}
+</style></head><body>
+<div id="login" hidden><form onsubmit="return login(event)">
+<img src="/logo.jpg" alt="Kikoo" class="lg"><h1 class="logo" style="padding:0">Kikoo</h1><div class="mu" style="margin-top:-8px">Staff login</div>
+<input id="lu" placeholder="Username" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" required>
+<input id="lp" type="password" placeholder="Password" autocomplete="current-password" autocapitalize="none" autocorrect="off" spellcheck="false" required>
+<button class="btn">Sign in</button><div id="le" class="mu"></div></form></div>
+<div id="app" hidden>
+<aside><div class="logo"><img src="/logo.jpg" alt="Kikoo"><span>Kikoo</span></div>
+<button class="nav" data-v="orders" onclick="go('orders')">📦 Orders</button>
+<button class="nav" data-v="cal" onclick="go('cal')">📅 Calendar</button>
+<button class="nav" data-v="cust" onclick="go('cust')">➕ Customer</button>
+<button class="nav" data-v="new" onclick="go('new')">📝 New order</button>
+<button class="nav lo" onclick="logout()">🚪 Log out</button></aside>
+<main><div class="mbrand"><img src="/logo.jpg" alt="Kikoo"><b>Kikoo</b><button class="btn g s mlo" onclick="logout()">Log out</button></div>
+<header id="hd"><input class="search" id="q" placeholder="🔍 Search orders by customer, title or number…" oninput="q=this.value;render(true)"></header><section id="v"></section></main></div>
+<div id="modal"></div><div id="toast"></div>
+<script>
+const STG=['Enquiry','Confirmed','In production','Ready','Delivered','Closed'],TYP=['Personalised item','3D cut-out','Birthday deco','Mixed order'];
+const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
+let D={clients:[],orders:[]},view='orders',q='',fl='open',tm,busy=false,rid={o:'',c:''},cal={y:new Date().getFullYear(),m:new Date().getMonth(),sel:null};
+const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const iso=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'),today=()=>iso(new Date());
+const pd=s=>{const[y,m,d]=s.split('-');return new Date(y,m-1,d)},fmt=s=>s?pd(s).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'—';
+const addD=(x,n)=>{const r=new Date(x);r.setDate(r.getDate()+n);return r},uid=()=>Math.random().toString(36).slice(2,10);
+const cli=id=>D.clients.find(c=>c.id==id),open_=o=>!['Delivered','Closed'].includes(o.status);
+const nrm=s=>String(s==null?'':s).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+const hit=(t,k)=>{const x=nrm(t);return nrm(k).split(/\s+/).filter(Boolean).every(w=>x.includes(w))};
+const fld=(l,n,v='',t='text',x='')=>`<label>${l}<input name="${n}" type="${t}" value="${esc(v)}" ${x}></label>`;
+const sel=(l,n,o,v,x='')=>`<label>${l}<select name="${n}" ${x}>${o.map(a=>{const[k,t]=Array.isArray(a)?a:[a,a];return`<option value="${esc(k)}"${k==v?' selected':''}>${esc(t)}</option>`}).join('')}</select></label>`;
+function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('on');clearTimeout(tm);tm=setTimeout(()=>e.classList.remove('on'),1800)}
+async function api(path,body){const r=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});if(r.status==401){location.reload();throw 0}return{r,j:await r.json().catch(()=>({}))}}
+async function loadData(){const r=await fetch('/api/staff/data');if(r.status==401){$('#login').hidden=false;$('#app').hidden=true;return false}if(r.status==403){location.replace('/');return false}if(!r.ok)return false;D=await r.json();return true}
+async function boot(){if(!await loadData())return;$('#login').hidden=true;$('#app').hidden=false;lastAct=lastPing=Date.now();render()}
+async function login(e){e.preventDefault();const r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user:$('#lu').value,pass:$('#lp').value})});const j=await r.json().catch(()=>({}));if(r.ok){if(j.role=='owner')location.href='/';else boot()}else $('#le').textContent=j.error||'Wrong username or password';return false}
+async function logout(){await fetch('/api/logout',{method:'POST'});location.reload()}
+const nd=()=>history.state&&history.state.nd;
+function go(v){view=v;q='';$('#q').value='';render();if(v=='orders'){if(nd())history.back()}else if(!nd())history.pushState({nd:1},'');if(v=='orders'||v=='cal')loadData().then(ok=>{if(ok&&view==v)render(true)})}
+addEventListener('popstate',()=>{if($('#app').hidden)return;view='orders';q='';$('#q').value='';render()});
+function render(keep){document.querySelectorAll('.nav[data-v]').forEach(n=>n.classList.toggle('on',n.dataset.v==view));$('#hd').hidden=view!='orders';$('#v').innerHTML=({orders:ordersV,cal:calV,cust:custV,new:newV})[view]();if(!keep)scrollTo(0,0)}
+const pill=o=>`<span class="pill s-${o.status}">${o.status}</span>`;
+function dueTag(o){if(!o.deliveryDate||!open_(o))return'';const t=today();if(o.deliveryDate<t)return'<span class="pill late">Overdue</span>';if(o.deliveryDate==t)return'<span class="pill soon">Today</span>';if(o.deliveryDate<=iso(addD(new Date(),2)))return'<span class="pill soon">Soon</span>';return''}
+const orow=o=>`<div class="row" style="cursor:default"><div class="m"><b>${esc(o.title)}</b><small>${esc(cli(o.clientId)?.name||'?')} · #${o.no} · ${fmt(o.deliveryDate)}</small></div>${dueTag(o)}<div>${pill(o)}</div></div>`;
+/* ---- Orders: delivery status ---- */
+function ordersV(){
+  const l=D.orders.filter(o=>fl=='all'||(fl=='open'?open_(o):!open_(o))).filter(o=>!q.trim()||hit([o.title,'#'+o.no,o.status,cli(o.clientId)?.name,cli(o.clientId)?.phone].join(' '),q))
+    .sort((a,b)=>fl=='done'?(b.deliveryDate||'').localeCompare(a.deliveryDate||''):(a.deliveryDate||'9').localeCompare(b.deliveryDate||'9'));
+  return`<h1 style="margin-bottom:6px">Orders</h1><p class="mu" style="margin-bottom:14px">Delivery status of every order.</p><div class="tabs">${[['open','Open'],['done','Delivered / closed'],['all','All']].map(([k,t])=>`<span class="tab ${fl==k?'on':''}" onclick="fl='${k}';render(true)">${t}</span>`).join('')}</div><div class="card">${l.length?l.map(orow).join(''):'<div class="empty">No orders found.</div>'}</div>`}
+/* ---- Calendar: deliveries to follow up ---- */
+function calV(){
+  const{y,m}=cal,t=today(),lead=(new Date(y,m,1).getDay()+6)%7,days=new Date(y,m+1,0).getDate(),ym=y+'-'+String(m+1).padStart(2,'0'),by={};
+  D.orders.forEach(o=>{if(o.deliveryDate)(by[o.deliveryDate]=by[o.deliveryDate]||[]).push(o)});
+  let cells=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(d=>`<div class="cw">${d}</div>`).join('')+'<div class="cd e"></div>'.repeat(lead);
+  for(let d=1;d<=days;d++){const k=ym+'-'+String(d).padStart(2,'0'),l=by[k]||[],op=l.filter(open_).length,dn=l.length-op;
+    cells+=`<div class="cd${k==t?' t':''}${k==cal.sel?' sel':''}" onclick="calSel('${k}')"><span>${d}</span>${op?`<i class="${k<t?'l':'o'}">${op}</i>`:''}${dn?`<i class="x">✓${dn}</i>`:''}</div>`}
+  const shown=(cal.sel?(by[cal.sel]||[]):D.orders.filter(o=>(o.deliveryDate||'').slice(0,7)==ym)).slice().sort((a,b)=>(a.deliveryDate||'').localeCompare(b.deliveryDate||'')||a.no-b.no);
+  const nodate=D.orders.filter(o=>open_(o)&&!o.deliveryDate).length;
+  return`<h1 style="margin-bottom:14px">Calendar</h1><div class="card"><div class="cbar"><button class="btn g s" onclick="calMove(-1)">◀</button><h2>${MONTHS[m]} ${y}</h2><button class="btn g s" onclick="calToday()">Today</button><button class="btn g s" onclick="calMove(1)">▶</button></div><div class="cal">${cells}</div><p class="mu" style="margin-top:10px">Green = deliveries to do · red = overdue · ✓ = delivered. Tap a day to see its orders.</p></div>
+<div class="card" style="margin-top:14px"><h3 style="margin-bottom:8px">${cal.sel?'Deliveries on '+fmt(cal.sel):'Deliveries in '+MONTHS[m]+' '+y}</h3>${shown.length?shown.map(orow).join(''):'<div class="empty">No deliveries.</div>'}${nodate?`<p class="mu" style="margin-top:10px">${nodate} open order${nodate>1?'s have':' has'} no delivery date yet.</p>`:''}</div>`}
+function calSel(k){cal.sel=cal.sel==k?null:k;render(true)}
+function calMove(n){cal.m+=n;if(cal.m<0){cal.m=11;cal.y--}if(cal.m>11){cal.m=0;cal.y++}cal.sel=null;render(true)}
+function calToday(){const n=new Date();cal={y:n.getFullYear(),m:n.getMonth(),sel:today()};render(true)}
+/* ---- New customer ---- */
+function custV(){rid.c=uid();return`<h1 style="margin-bottom:14px">New customer</h1><div class="card"><form class="f" onsubmit="return subC(event)">${fld('Name *','name','','text','required')}${fld('Phone / WhatsApp','phone','','tel')}${fld('Email','email','','email')}${sel('Found us via','source',['WhatsApp','Facebook','Instagram','Referral','Other'],'WhatsApp')}${fld("Child's name & age",'child')}${fld("Child's birthday",'bday','','date')}<div class="w">${fld('Address','addr')}</div><label class="w">Onboarding notes (themes, likes, allergies, preferences)<textarea name="notes"></textarea></label><div class="acts w"><button class="btn" id="sb">✅ Save customer</button></div></form></div>`}
+async function subC(e){e.preventDefault();if(busy)return false;const f=e.target,d=Object.fromEntries(new FormData(f));busy=true;$('#sb').disabled=true;
+  try{const{r,j}=await api('/api/staff/client',{...d,rid:rid.c});
+    if(r.status==409&&j.client){alert('This customer already exists: '+j.client.name+(j.client.phone?' ('+j.client.phone+')':'')+'. No duplicate was created.');if(!cli(j.client.id))D.clients.push(j.client)}
+    else if(!r.ok)alert(j.error||'Could not save. Please try again.');
+    else{D.clients.push(j.client);toast('Customer saved ✓');f.reset();rid.c=uid()}
+  }catch(x){alert('No connection. Please try again.')}
+  busy=false;const b=$('#sb');if(b)b.disabled=false;return false}
+/* ---- New order (submitted without prices; the owner adds the amount and takes payments) ---- */
+function newV(){rid.o=uid();const cs=[...D.clients].sort((a,b)=>a.name.localeCompare(b.name));
+  return`<h1 style="margin-bottom:14px">New order</h1><div class="card"><form class="f" onsubmit="return subO(event)">
+${sel('Customer','clientId',[['','— choose customer —'],...cs.map(c=>[c.id,c.name+(c.phone?' · '+c.phone:'')]),['__new','➕ New customer…']],'',`onchange="$('#nc').hidden=this.value!=='__new'" required`)}
+<div id="nc" class="f w" hidden>${fld('New customer name','nname')}${fld('Phone / WhatsApp','nphone','','tel')}</div>
+<div class="w">${fld('Order title *','title','','text','required placeholder="e.g. Unicorn party pack for Mia"')}</div>
+${sel('Type','type',TYP,TYP[0])}${sel('Priority','priority',['Normal','High','Urgent'],'Normal')}
+<label class="w">Details (theme, name, age, colours, sizes, quantity)<textarea name="details"></textarea></label>
+${fld('Order date','orderDate',today(),'date')}${fld('Delivery date','deliveryDate','','date')}
+<div class="w">${fld('Delivery address / pickup','addr')}</div>
+<div class="acts w"><button class="btn" id="sb">✅ Submit order</button></div></form></div>`}
+async function subO(e){e.preventDefault();if(busy)return false;const d=Object.fromEntries(new FormData(e.target));let cid=d.clientId;
+  if(!cid)return alert('Please choose a customer or add a new one.');
+  if(cid=='__new'&&!(d.nname||'').trim())return alert('Please enter the new customer\'s name.');
+  busy=true;$('#sb').disabled=true;
+  try{
+    if(cid=='__new'){const{r,j}=await api('/api/staff/client',{name:d.nname,phone:d.nphone,rid:rid.o+'c'});
+      if(r.status==409&&j.client){cid=j.client.id;if(!cli(cid))D.clients.push(j.client);toast('Customer already existed – using '+j.client.name)}
+      else if(!r.ok){alert(j.error||'Could not save the customer.');busy=false;$('#sb').disabled=false;return false}
+      else{cid=j.client.id;D.clients.push(j.client)}}
+    const{r,j}=await api('/api/staff/order',{clientId:cid,title:d.title,type:d.type,priority:d.priority,details:d.details,orderDate:d.orderDate,deliveryDate:d.deliveryDate,addr:d.addr,rid:rid.o});
+    if(!r.ok){alert(j.error||'Could not submit. Please try again.');busy=false;$('#sb').disabled=false;return false}
+    D.orders.push(j.order);toast('Order #'+j.order.no+' submitted ✓');busy=false;fl='open';go('orders');return false;
+  }catch(x){alert('No connection. Please try again.')}
+  busy=false;const b=$('#sb');if(b)b.disabled=false;return false}
+/* ---- auto log-off after 5 minutes without activity ---- */
+const IDLE=5*60000;let lastAct=Date.now(),lastPing=Date.now();
+function act(){if($('#app').hidden)return;const n=Date.now();if(n-lastAct>IDLE)return logout();lastAct=n;
+  if(n-lastPing>60000){lastPing=n;fetch('/api/ping',{method:'POST'}).then(r=>{if(r.status==401)location.reload()}).catch(()=>{})}}
+['click','keydown','input','touchstart','pointerdown','scroll','mousemove'].forEach(e=>addEventListener(e,act,{passive:true,capture:true}));
+setInterval(()=>{if(!$('#app').hidden&&Date.now()-lastAct>IDLE)logout()},15000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&!$('#app').hidden&&Date.now()-lastAct>IDLE)logout()});
+/* keep statuses fresh while looking at Orders / Calendar */
+setInterval(async()=>{if($('#app').hidden||document.hidden||busy||!['orders','cal'].includes(view))return;if(await loadData())render(true)},60000);
+boot();
+</script></body></html>
