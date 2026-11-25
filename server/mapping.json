@@ -1,0 +1,16 @@
+{
+  "_about": "Rules used by the invoice bot. Same content as mapping/invoice_mapping_table.xlsx (Account_Map, Value_Maps, Review_Rules). Suppliers, aliases, usual expense type and payment terms are NOT here: they live on the Suppliers screen in the app.",
+  "toleranceAmount": 0.05,
+  "maxInvoiceAgeDays": 365,
+  "vatRate": 0.15,
+  "currencyMap": { "rs": "MUR", "mur": "MUR", "rupees": "MUR", "rupee": "MUR", "$": "USD", "us$": "USD", "usd": "USD", "€": "EUR", "eur": "EUR", "£": "GBP", "gbp": "GBP" },
+  "supplierSuffixes": ["ltd", "limited", "co", "inc", "incorporated", "company", "sarl", "plc", "llc", "corp", "corporation"],
+  "accountKeywords": [
+    { "keywords": ["electricity", "water", "ceb", "cwa", "internet", "telephone", "telecom", "fibre", "fiber"], "account": "Utilities" },
+    { "keywords": ["paper", "stationery", "toner", "cartridge", "pens", "folders"], "account": "Office supplies" },
+    { "keywords": ["rent", "rental", "lease"], "account": "Rent" },
+    { "keywords": ["audit", "accounting", "legal", "lawyer", "consultancy", "consulting", "notary"], "account": "Professional fees" },
+    { "keywords": ["taxi", "fuel", "petrol", "diesel", "flight", "air ticket", "transport", "parking"], "account": "Travel & transport" },
+    { "keywords": ["bank charge", "bank fee", "commission"], "account": "Bank charges" }
+  ]
+}
