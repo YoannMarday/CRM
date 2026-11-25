@@ -1,13 +1,20 @@
 services:
   - type: web
-    name: finance-ops-app
-    env: node
+    name: party-crm
+    runtime: node
     plan: free
-    buildCommand: cd server && npm install && node setup.js
-    startCommand: cd server && node index.js
+    buildCommand: npm install
+    startCommand: npm start
     envVars:
-      # Paste your Neon connection link here in the Render dashboard
+      - key: APP_USER
+        sync: false
+      - key: APP_PASS
+        sync: false
       - key: DATABASE_URL
         sync: false
-      - key: JWT_SECRET
+      - key: STAFF_USER
+        sync: false
+      - key: STAFF_PASS
+        sync: false
+      - key: SESSION_SECRET
         generateValue: true
